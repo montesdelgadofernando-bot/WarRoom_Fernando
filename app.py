@@ -55,10 +55,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- OBTENCIÓN DE API KEY SILENCIOSA ---
-try:
-    API_KEY = st.secrets["GEMINI_API_KEY"]
-except:
-    API_KEY = ""
+# REEMPLAZA EL TEXTO ENTRE COMILLAS CON TU LLAVE REAL:
+API_KEY = "AIzaSyB-0E_uJwBSA1FVpC2E6mus3ZX06TkV1Xo"
 
 # --- PILARES DE CONOCIMIENTO RESTAURADOS ---
 THIRTY_DAY_PLAN = [
@@ -103,12 +101,9 @@ with st.sidebar:
     st.markdown("<h1 style='text-align: center; font-size: 3em;'>⚙️</h1>", unsafe_allow_html=True)
     st.title("Mission Control")
     
-    if not API_KEY:
-        st.warning("Servidor abierto no configurado. Ingresa la llave manualmente.")
-        active_key = st.text_input("🔑 Gemini API Key:", type="password")
-    else:
-        st.success("Conexión segura establecida.")
-        active_key = API_KEY
+    # Hemos eliminado la caja de texto. Ahora siempre tomará la llave interna.
+    st.success("Conexión segura establecida con IA.")
+    active_key = API_KEY
     
     st.divider()
     
@@ -224,7 +219,7 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
-    # --- TAB 2: AI COMBAT LAB ---
+    # --- TAB 2: AI COMBAT Lab ---
     with tabs[1]:
         current_mission = next((p for p in THIRTY_DAY_PLAN if p['day'] == st.session_state.current_day), THIRTY_DAY_PLAN[-1])
         st.subheader(f"Entrenamiento Táctico: Día {st.session_state.current_day}")
