@@ -7,13 +7,13 @@ from datetime import datetime
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
-    page_title="Executive English AI Coach - Fernando Montes",
+    page_title="AI War Room v11.0 - Fernando Montes",
     page_icon="🦅",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # --- API CONFIG (Gemini 2.5 Flash) ---
-# La plataforma provee la llave automáticamente
 apiKey = "" 
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={apiKey}"
 
@@ -22,22 +22,26 @@ def call_ai(prompt, system_instruction):
         "contents": [{"parts": [{"text": prompt}]}],
         "systemInstruction": {"parts": [{"text": system_instruction}]}
     }
-    
-    # Implementación de Exponential Backoff para robustez
-    for delay in [1, 2, 4, 8, 16]:
+    for delay in [1, 2, 4]:
         try:
-            response = requests.post(API_URL, json=payload)
+            response = requests.post(API_URL, json=payload, timeout=10)
             if response.status_code == 200:
                 result = response.json()
                 return result['candidates'][0]['content']['parts'][0]['text']
         except Exception:
             time.sleep(delay)
-    return "AI Coach busy. Please retry in a few seconds."
+    return "The AI Coach is momentarily offline. Please click the button again."
 
-# --- ESTILOS PREMIUM (Modo Ejecutivo Dark) ---
+# --- ESTILOS PREMIUM E INTERFAZ INTUITIVA ---
 st.markdown("""
     <style>
     .main { background-color: #0f172a; color: #f8fafc; }
+    .stButton>button {
+        width: 100%; border-radius: 10px; height: 3em; 
+        background-color: #1e293b; border: 1px solid #3b82f6;
+        color: white; font-weight: bold; transition: 0.3s;
+    }
+    .stButton>button:hover { background-color: #3b82f6; border: none; transform: translateY(-2px); }
     .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: #1e293b; padding: 12px; border-radius: 15px; }
     .stTabs [data-baseweb="tab"] {
         height: 50px; background-color: #334155; border-radius: 8px; 
@@ -45,19 +49,23 @@ st.markdown("""
     }
     .stTabs [aria-selected="true"] { background-color: #3b82f6 !important; color: white !important; }
     .day-card {
-        padding: 15px; border-radius: 10px; text-align: center; font-size: 0.85em;
-        border: 1px solid #334155; transition: 0.3s;
+        padding: 15px; border-radius: 12px; text-align: center; font-size: 0.85em;
+        border: 2px solid #334155; transition: 0.3s; margin-bottom: 10px;
     }
-    .day-current { background-color: #1e40af; border-color: #3b82f6; font-weight: bold; box-shadow: 0 0 15px #3b82f6; }
-    .day-done { background-color: #065f46; opacity: 0.7; }
+    .day-current { background-color: #1e40af; border-color: #3b82f6; box-shadow: 0 0 20px #3b82f6; }
+    .day-done { background-color: #065f46; border-color: #10b981; opacity: 0.8; }
     .executive-card {
-        background: #1e293b; padding: 30px; border-radius: 20px;
+        background: #1e293b; padding: 25px; border-radius: 15px;
         box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4); border-left: 8px solid #3b82f6;
+    }
+    .guide-box {
+        background: #1e3a8a; padding: 15px; border-radius: 10px;
+        border-left: 5px solid #60a5fa; margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- PLAN MAESTRO DE 30 DÍAS ---
+# --- PLAN MAESTRO ---
 THIRTY_DAY_PLAN = {
     1: "Executive Pitch & Value Proposition",
     2: "EBITDA, Hard Savings & Financial Reporting",
@@ -69,41 +77,54 @@ THIRTY_DAY_PLAN = {
     8: "Root Cause Analysis (8D) & Predictive Modeling",
     9: "OEM Negotiations & Stakeholder Management",
     10: "Strategic Cost Reduction (OpEx vs CapEx)"
-} # El sistema escala hasta el día 30 dinámicamente
+}
 
-# --- ESTADO DE SESIÓN ---
+# --- INITIALIZATION ---
 if 'current_day' not in st.session_state: st.session_state.current_day = 1
 if 'xp' not in st.session_state: st.session_state.xp = 0
+if 'show_guide' not in st.session_state: st.session_state.show_guide = True
 
-# --- SIDEBAR ESTRATÉGICO ---
+# --- SIDEBAR ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", width=70)
-    st.title("AI Command Center")
+    st.title("🦅 Mission Control")
     st.write(f"**Leader:** Fernando Montes")
     st.divider()
-    st.metric("Operational Progress", f"Day {st.session_state.current_day}/30")
+    st.metric("Sprint Progress", f"Day {st.session_state.current_day}/30")
     st.progress(st.session_state.current_day / 30)
-    st.write(f"Experience (XP): {st.session_state.xp}")
+    st.write(f"**Global XP:** {st.session_state.xp}")
     st.divider()
-    if st.button("Next Day ➡️"):
+    
+    if st.button("🏁 Completar Día y Avanzar"):
         st.session_state.current_day = min(st.session_state.current_day + 1, 30)
+        st.session_state.xp += 100
         st.rerun()
-    if st.button("Reset Plan 🔄"):
+        
+    if st.button("⚙️ Reiniciar Todo el Plan"):
         st.session_state.current_day = 1
         st.session_state.xp = 0
         st.rerun()
+    
+    st.checkbox("Mostrar guías de ayuda", value=True, key="help_toggle")
 
-# --- INTERFAZ PRINCIPAL ---
-st.title("🦅 Executive AI War Room v10.0")
-st.write("Tu ecosistema letal para el dominio del inglés técnico en 30 días.")
+# --- UI PRINCIPAL ---
+st.title("🛡️ Executive AI War Room v11.0")
+st.write("Ecosistema de inmersión táctica diseñado para el dominio del inglés técnico.")
 
-tabs = st.tabs(["📅 Tactical Roadmap", "🤖 AI Combat Lab", "🔥 The Forge (STAR)", "📊 Analytics"])
+if st.session_state.help_toggle:
+    st.markdown("""
+    <div class="guide-box">
+        <b>💡 Guía Rápida:</b> Usa el <b>Roadmap</b> para ver tu plan mensual. En el <b>Combat Lab</b>, desafía a la IA para practicar respuestas reales. 
+        En <b>The Forge</b>, pega tus logros y la IA los redactará a nivel Director.
+    </div>
+    """, unsafe_allow_html=True)
+
+tabs = st.tabs(["📅 Tactical Roadmap", "🤖 AI Combat Lab", "🔥 The Forge (STAR)", "📚 Knowledge Base"])
 
 # --- TAB 1: ROADMAP ---
 with tabs[0]:
-    st.subheader("30-Day Execution Calendar")
+    st.subheader("Plan de Operaciones: 30 Días")
     cols = st.columns(7)
-    for i in range(1, 31):
+    for i in range(1, 15): # Mostramos los primeros 14 días para claridad
         with cols[(i-1)%7]:
             status = ""
             if i == st.session_state.current_day: status = "day-current"
@@ -112,63 +133,70 @@ with tabs[0]:
             st.markdown(f"""
                 <div class="day-card {status}">
                     <b>DAY {i}</b><br>
-                    <small>{THIRTY_DAY_PLAN.get(i, "Leadership Mastery")[:18]}...</small>
+                    <small>{THIRTY_DAY_PLAN.get(i, "Advanced Ops")[:15]}...</small>
                 </div>
             """, unsafe_allow_html=True)
     
     st.divider()
-    topic = THIRTY_DAY_PLAN.get(st.session_state.current_day, "Continuous Improvement")
+    current_topic = THIRTY_DAY_PLAN.get(st.session_state.current_day, "Continuous Improvement")
     st.markdown(f"""
     <div class="executive-card">
-        <h3>Today's Mission: {topic}</h3>
-        <p>Your objective today is to master the vocabulary and strategic responses for <b>{topic}</b>.</p>
+        <h3 style="color:#60a5fa;">Misión de Hoy: {current_topic}</h3>
+        <p>Tu objetivo es dominar la terminología de <b>{current_topic}</b> para sonar como un líder global.</p>
     </div>
     """, unsafe_allow_html=True)
 
 # --- TAB 2: AI COMBAT LAB ---
 with tabs[1]:
-    st.subheader("High-Pressure AI Simulation")
-    st.write("La IA generará un desafío técnico aleatorio basado en tu nivel y el día actual.")
+    st.subheader("Entrenamiento de Alta Presión")
+    st.write("Haz clic en el botón para que la IA genere un escenario basado en tu misión de hoy.")
     
-    if st.button("Generate Technical Challenge"):
-        with st.spinner("AI is crafting a scenario..."):
-            system_instruction = f"""You are a world-class Executive Recruiter for a Tier 1 Automotive company. 
-            Fernando is your candidate. He is a master in IATF, VDA 6.3, SQL, and Logistics.
-            Today is Day {st.session_state.current_day} focused on {topic}.
-            Generate a tough, technical interview question in English."""
-            st.session_state.challenge = call_ai("Ask me a difficult question.", system_instruction)
+    if st.button("🎯 Generar Desafío Técnico de Hoy"):
+        with st.spinner("La IA está preparando el escenario..."):
+            system_prompt = f"""You are a CEO interviewing Fernando. Today is Day {st.session_state.current_day}: {current_topic}.
+            Ask one tough, direct technical question in English. Fernando must prove he is a Director-level leader."""
+            st.session_state.active_challenge = call_ai("Ask me a tough question about today's topic.", system_prompt)
     
-    if 'challenge' in st.session_state:
-        st.info(st.session_state.challenge)
-        response = st.text_area("Your Executive Response (English):", height=120)
-        if st.button("Submit Response"):
-            with st.spinner("Analyzing..."):
-                analysis_prompt = f"Analyze this response to the question: {st.session_state.challenge}. User response: {response}. Provide: 1. Score (0-100), 2. Correction of tone/grammar, 3. A 'Director-level' version of the same answer."
-                feedback = call_ai(analysis_prompt, "You are a CEO providing feedback.")
-                st.markdown(f"<div class='executive-card'><b>AI Feedback:</b><br>{feedback}</div>", unsafe_allow_html=True)
-                st.session_state.xp += 50
+    if 'active_challenge' in st.session_state:
+        st.markdown(f"<div class='executive-card'><b>Auditor/CEO:</b><br>{st.session_state.active_challenge}</div>", unsafe_allow_html=True)
+        response = st.text_area("Tu Respuesta Ejecutiva (en Inglés):", placeholder="Type your answer here...", height=150)
+        
+        if st.button("🚀 Enviar Respuesta para Análisis"):
+            if not response:
+                st.warning("Escribe algo antes de enviar.")
+            else:
+                with st.spinner("Analizando tu autoridad lingüística..."):
+                    critique_prompt = f"Analyze this response to: {st.session_state.active_challenge}. Response: {response}. Provide: 1. Score (0-100), 2. Correction, 3. The 'Director-level' way to say it."
+                    feedback = call_ai(critique_prompt, "You are a CEO giving feedback.")
+                    st.markdown(f"<div class='executive-card' style='border-left-color:#10b981;'><b>Feedback del Coach:</b><br>{feedback}</div>", unsafe_allow_html=True)
+                    st.session_state.xp += 50
 
 # --- TAB 3: THE FORGE ---
 with tabs[2]:
-    st.subheader("Success Story Forge (AI Powered)")
-    st.write("Ingresa tus logros en español o inglés básico y deja que la IA los convierta en argumentos letales.")
-    raw_achievement = st.text_area("Achievement (Draft):", placeholder="Ej: Ahorré mucho dinero en empaque usando SQL...")
+    st.subheader("The Forge: Optimización de Logros")
+    st.write("La IA reescribirá tus logros para que impacten en el EBITDA.")
     
-    if st.button("Forge to Director Level"):
-        with st.spinner("Refining..."):
-            forge_prompt = "Convert this draft into a powerful, executive-level STAR method paragraph using professional verbs like 'spearheaded', 'orchestrated', 'leveraged', and mention EBITDA/Hard Savings."
-            result = call_ai(raw_achievement, forge_prompt)
-            st.markdown(f"<div class='executive-card'><b>Forged Result:</b><br>{result}</div>", unsafe_allow_html=True)
+    user_draft = st.text_area("Pega aquí un logro de tu CV (Español o Inglés):", placeholder="Ej: Ahorré $274k en cajas en Mercado Libre usando SQL.")
+    
+    if st.button("⚒️ Forjar a Nivel Director"):
+        if not user_draft:
+            st.warning("Ingresa un logro para forjar.")
+        else:
+            with st.spinner("Refinando el argumento..."):
+                forge_prompt = "Convert this into a high-level executive STAR paragraph. Use verbs like 'Spearheaded', 'Orchestrated', 'Leveraged'. Focus on Hard Savings and EBITDA impact."
+                forged_result = call_ai(user_draft, forge_prompt)
+                st.markdown(f"<div class='executive-card'><b>Versión Letal:</b><br>{forged_result}</div>", unsafe_allow_html=True)
 
-# --- TAB 4: ANALYTICS ---
+# --- TAB 4: ENCYCLOPEDIA ---
 with tabs[3]:
-    st.subheader("Performance Tracker")
+    st.subheader("Base de Conocimiento Táctico")
     c1, c2 = st.columns(2)
-    c1.metric("Total XP Earned", st.session_state.xp)
-    c2.metric("Plan Progress", f"{int((st.session_state.current_day/30)*100)}%")
-    st.divider()
-    st.write("#### Skills Radar")
-    st.info("Top Performer in: IATF Compliance | SQL Data Extraction | EBITDA Strategy")
+    with c1:
+        st.info("**Quality & Ops:** IATF 16949, VDA 6.3, PFMEA, Root Cause Analysis, 8D Reports.")
+    with c2:
+        st.info("**Data & Tech:** SQL Queries, BigQuery, Predictive Reliability, Prompt Engineering.")
+    st.write("Utiliza estos términos en tus respuestas para aumentar tu XP.")
 
 st.divider()
-st.caption("Executive English War Room | v10.0 AI-Omnibus | Build by AI for Fernando Montes")
+st.caption(f"Executive English Mastery Suite | v11.0 | Fernando Montes Delgado | Session: {datetime.now().strftime('%Y-%m-%d')}")
+
