@@ -50,7 +50,7 @@ COURSE_DATA = {
         },
         {
             "q": "Define your role for a Director-level interview:",
-            "opts": ["I am a quality manager with engineering experience.", "I am an Operations Strategist specialized in protecting EBITDA through Lean-IA integration.", "I manage multi-functional teams in logistics.", "I solve quality problems for OEM clients."],
+            "opts": ["I am a quality manager with engineering experience.", "I am an Operations Strategize specialized in protecting EBITDA through Lean-IA integration.", "I manage multi-functional teams in logistics.", "I solve quality problems for OEM clients."],
             "ans": 1,
             "exp": "Venderte como 'Strategist' te posiciona como un líder que entiende el negocio, no solo el piso de producción."
         }
