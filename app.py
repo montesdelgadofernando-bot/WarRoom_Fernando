@@ -107,27 +107,51 @@ try:
 except Exception:
     API_KEY = ""
 
-# --- BANCO DE PREGUNTAS MCQ COMPLEJAS (Toma de decisiones) ---
+# --- BANCO DE PREGUNTAS MCQ COMPLEJAS (RESTABLECIDO) ---
 DYNAMIC_MCQ = {
     "Operaciones & Supply Chain": [
-        {"q": "Un proveedor crítico anuncia un aumento del 25% en el tiempo de entrega. ¿Cómo reportas el impacto a la junta?", "options": ["Esperar a que llegue el material.", "Reportar una disrupción en el lead-time y su impacto proyectado en el OEE.", "Pedir al proveedor que trabaje más rápido.", "Aumentar el stock de seguridad sin analizar costos."], "ans": 1},
-        {"q": "El EBITDA se está reduciendo debido al aumento de fletes. ¿Cuál es tu movimiento estratégico?", "options": ["Cortar personal de logística.", "Optimizar la precisión de inventario (IRA) y liderar una estrategia multi-modal.", "Subir los precios y esperar.", "Detener todos los embarques."], "ans": 1},
-        {"q": "En una reunión de S&OP, hay una brecha enorme entre demanda y capacidad. Debes:", "options": ["Producir a máxima velocidad.", "Orquestar una alineación cross-functional para priorizar SKUs de alto margen.", "Decirle a ventas que deje de vender.", "Esperar datos del próximo mes."], "ans": 1},
-        {"q": "Los costos de mantenimiento de inventario están al 30%. ¿Cómo los reduces de forma ejecutiva?", "options": ["Tirar el stock viejo.", "Implementar un sistema pull JIT respaldado por modelos predictivos.", "Mover stock a un almacén barato.", "Dejar de comprar por una semana."], "ans": 1},
-        {"q": "En un reporte de proyecto, ¿cuál frase demuestra mayor autoridad?", "options": ["Ayudé al equipo a terminar.", "Lideré la iniciativa estratégica para entregar un 15% de ahorros duros.", "Estuve presente durante la ejecución.", "El proyecto se terminó a tiempo."], "ans": 1},
-        {"q": "Un cuello de botella reduce la salida diaria un 10%. Tu acción inmediata es:", "options": ["Contratar más gente ahí.", "Realizar un análisis de Takt-time para balancear la línea.", "Pedir que la máquina corra más rápido.", "Reportar la máquina descompuesta."], "ans": 1}
+        {"q": "A critical tier-1 supplier announces a 25% increase in lead time. How do you report the impact to the board?", "options": ["Wait for the material and report later.", "Report a lead-time disruption and its projected impact on throughput and OEE.", "Ask the supplier to work overtime.", "Increase safety stock without analyzing financial carrying costs."], "ans": 1},
+        {"q": "EBITDA is shrinking due to rising multi-modal freight costs. What is your move?", "options": ["Reduce the logistics headcount immediately.", "Orchestrate a multi-modal strategy focused on IRA and cost optimization.", "Increase prices without market analysis.", "Stop all shipments until rates drop."], "ans": 1},
+        {"q": "In an S&OP meeting, there is a major gap between demand and capacity. You should:", "options": ["Ignore it and produce at max capacity.", "Align demand and supply plans by prioritizing high-margin SKUs.", "Tell sales to stop taking orders.", "Wait for next month's forecast."], "ans": 1},
+        {"q": "Your inventory carrying cost is 30%. What is the executive solution?", "options": ["Dispose of old inventory immediately.", "Implement a pull system backed by predictive modeling to reduce buffers.", "Rent a cheaper warehouse.", "Stop procurement for a month."], "ans": 1},
+        {"q": "Which phrase demonstrates highest authority in a P&L update?", "options": ["I helped reduce costs last quarter.", "I spearheaded a strategic initiative delivering $274k in hard savings.", "I was responsible for the cost cutting plan.", "The team reduced costs under my supervision."], "ans": 1},
+        {"q": "A bottleneck is impacting 15% of your throughput. Your first step is:", "options": ["Hire more operators.", "Perform a Takt-time analysis to balance the flow and maximize OEE.", "Increase machine speed.", "Report a technical breakdown."], "ans": 1}
     ],
     "Calidad & Lean Manufacturing": [
-        {"q": "Una auditoría VDA 6.3 detecta una falla sistémica en tratamiento térmico. Tu respuesta profesional es:", "options": ["Arreglaremos la máquina mañana.", "Hemos desplegado una acción de contención e iniciado un RCA robusto para identificar la contramedida.", "El auditor está mal.", "Detendremos la línea hasta cambiar de proveedor."], "ans": 1},
-        {"q": "Tu Cpk es de 0.85. ¿Qué le comunicas a un cliente global?", "options": ["El proceso es estable.", "El proceso es incapaz de cumplir especificaciones y requiere estabilización inmediata.", "El costo es muy bajo.", "La máquina va lento."], "ans": 1},
-        {"q": "En un evento Kaizen identificas 'Muda' en el flujo. ¿Cuál es el impacto?", "options": ["Moral alta.", "Mejora del EBITDA mediante la eliminación de desperdicio y optimización del ciclo.", "Almacén limpio.", "Mejor marketing."], "ans": 1},
-        {"q": "Un cliente descubre un defecto en una parte crítica de seguridad. ¿Primer paso ejecutivo?", "options": ["Pedir perdón.", "Orquestar una cuarentena global del lote e iniciar un reporte 8D.", "Despedir al operador.", "Decirle al cliente que lo use."], "ans": 1},
-        {"q": "En diseño, ¿cuál herramienta predice modos de falla antes de que ocurran?", "options": ["Lista de verificación.", "Un FMEA cross-functional.", "Auditoría post-producción.", "Encuestas."], "ans": 1},
-        {"q": "Forma avanzada de describir 'A prueba de errores' en un resumen ejecutivo:", "options": ["Arreglar errores.", "Implementar dispositivos Poke-Yoke para asegurar manufactura con cero defectos.", "Revisar todo dos veces.", "Contratar inspectores."], "ans": 1}
+        {"q": "An IATF 16949 audit detects a systemic failure in RCA. Your professional response is:", "options": ["We will fix it by next week.", "We have deployed immediate containment and are initiating a robust 8D report.", "The auditor misunderstood our process.", "We will retrain all operators immediately."], "ans": 1},
+        {"q": "Your process Cpk is 0.82. What does this communicate to a global stakeholder?", "options": ["The process is stable but slow.", "The process is incapable of meeting specifications and requires stabilization.", "The product cost is too high.", "The machine needs a new operator."], "ans": 1},
+        {"q": "A major non-conformance is found in the design phase. Which tool identifies it?", "options": ["A basic checklist.", "A cross-functional FMEA (Failure Mode and Effects Analysis).", "A customer survey.", "A post-production audit."], "ans": 1},
+        {"q": "How do you explain 'Muda' to a CFO focusing on financial impact?", "options": ["It means we have too much trash.", "It represents non-value-added activities impacting EBITDA and cycle time.", "It is a Japanese word for cleanliness.", "It means we need more robots."], "ans": 1},
+        {"q": "What is the most executive way to describe 'Poke-Yoke'?", "options": ["Fixing errors manually.", "Implementing error-proofing devices to ensure zero-defect manufacturing.", "Double-checking every part.", "Buying high-quality tools."], "ans": 1},
+        {"q": "A 'Gemba Walk' is primarily used by leaders to:", "options": ["Walk around for exercise.", "Observe the actual place of work to identify improvement opportunities.", "Check if people are working hard.", "Talk to the staff about their personal lives."], "ans": 1}
+    ],
+    "Data Science & SQL": [
+        {"q": "The board asks for a projection of failure rates. You should offer:", "options": ["A guess based on last year.", "A predictive model leveraged through BigQuery and SQL analytics.", "A spreadsheet with old data.", "A chart showing previous errors."], "ans": 1},
+        {"q": "A 'JOIN' operation in SQL is failing due to data integrity. You say:", "options": ["The tables don't like each other.", "We are experiencing a relational mismatch that requires data cleansing.", "The computer is slow.", "We need to delete the data."], "ans": 1},
+        {"q": "How do you justify a 'Big Data' investment to a non-technical CEO?", "options": ["It makes us look modern.", "It allows us to extract actionable insights to drive profitability.", "It stores more files than Excel.", "It is faster than our current server."], "ans": 1},
+        {"q": "What is a 'Primary Key' in terms of business impact?", "options": ["A password to enter the office.", "A unique identifier ensuring data accuracy and reporting reliability.", "The main computer in the room.", "A set of rules for the team."], "ans": 1},
+        {"q": "When a dashboard shows a KPI in red, your executive response is:", "options": ["I will fix the chart.", "I am analyzing the root cause to deploy a corrective measure.", "It's probably a data error.", "We will look at it next week."], "ans": 1},
+        {"q": "Machine Learning is best described to a VP as:", "options": ["Robots doing human work.", "Systems that leverage data patterns to optimize decision-making.", "A fancy type of calculator.", "Automatic coding."], "ans": 1}
+    ],
+    "Ingeniería de Producto": [
+        {"q": "A BOM error is discovered after production started. You report:", "options": ["We made a small mistake.", "A critical BOM misalignment was identified; initiating a technical revision.", "We will change it later.", "The design team is busy."], "ans": 1},
+        {"q": "What is 'DFM' in a cost-optimization meeting?", "options": ["Designing for Money.", "Design for Manufacturing to reduce complexity and OPEX.", "Doing Fine Models.", "Data for Management."], "ans": 1},
+        {"q": "A prototype fails a stress test. Your high-level report says:", "options": ["The part broke.", "The component experienced a structural failure under specification limits.", "We need better material.", "The test was too hard."], "ans": 1},
+        {"q": "Which term describes 'Tolerance' in an executive summary?", "options": ["How much we can stand a problem.", "The allowable variation in a physical dimension to ensure fitment.", "The price range of a part.", "The time we have to finish."], "ans": 1},
+        {"q": "Iterative design is used to:", "options": ["Make things slowly.", "Continuously refine a product based on data and feedback.", "Copy other designs.", "Save money on designers."], "ans": 1},
+        {"q": "FEA stands for a method that:", "options": ["Finds Every Atom.", "Finite Element Analysis to predict how parts react to forces.", "Fast Engineering Action.", "Future Entry Assessment."], "ans": 1}
+    ],
+    "Otra": [
+        {"q": "Which phrase demonstrates highest authority?", "options": ["I helped with the project.", "I spearheaded the strategic initiative.", "I did the work.", "I was part of the group."], "ans": 1},
+        {"q": "Professional communication should always be:", "options": ["Extremely long.", "Concise and impact-oriented.", "Casual and funny.", "Detailed and technical only."], "ans": 1},
+        {"q": "What is a 'KPI'?", "options": ["Key Performance Indicator.", "King Price Item.", "Knowledge Part Index.", "Keep People Informed."], "ans": 0},
+        {"q": "An 'Outcome' is better defined as:", "options": ["The start of something.", "A result or consequence of an action.", "A bill to pay.", "A meeting."], "ans": 1},
+        {"q": "Stakeholder alignment means:", "options": ["Ignoring people.", "Ensuring all parties agree on the strategic goal.", "Hiring new staff.", "Selling parts."], "ans": 1},
+        {"q": "EBITDA is a measure of:", "options": ["Employee happiness.", "Operational profitability.", "Market share.", "Total debt."], "ans": 1}
     ]
 }
 
-# --- BASE DE CONOCIMIENTO (PLAN 30 DÍAS) ---
+# --- BASE DE CONOCIMIENTO (RESTABLECIDA) ---
 THIRTY_DAY_PLAN = [
     {"day": 1, "phase": "Cimientos", "title": "El Pitch de Impacto (EBITDA)", "focus": "Cómo presentar tu valor financiero y ahorros duros."},
     {"day": 2, "phase": "Defensa", "title": "Auditorías Globales", "focus": "Contención, RCA, IATF 16949 y VDA 6.3."},
@@ -138,7 +162,6 @@ THIRTY_DAY_PLAN = [
     {"day": 7, "phase": "Boardroom", "title": "Prueba de Fuego (CEO)", "focus": "Estructuras ejecutivas bajo presión extrema."},
 ]
 
-# --- POWER VERBS ---
 POWER_VERBS_DRILLS = [
     ("I fixed the problem", "I rectified the non-conformance"),
     ("I saved money", "I delivered substantial hard savings"),
@@ -157,7 +180,7 @@ def call_ai(prompt, api_key):
         return response.json()['candidates'][0]['content']['parts'][0]['text'] if response.status_code == 200 else f"Error: {response.status_code}"
     except: return "Connection error."
 
-# --- ESTADO DE SESIÓN ---
+# --- MANEJO DE ESTADO ---
 if 'screen' not in st.session_state: st.session_state.screen = 'home'
 if 'user_name' not in st.session_state: st.session_state.user_name = ""
 if 'user_area' not in st.session_state: st.session_state.user_area = "Operaciones & Supply Chain"
@@ -179,21 +202,21 @@ with st.sidebar:
     st.divider()
     if st.session_state.user_name:
         st.write(f"**Líder:** {st.session_state.user_name}")
-        st.markdown(f"**Nivel:** `<span style='color:#f59e0b; font-weight:bold;'>{st.session_state.english_level}</span>`", unsafe_allow_html=True)
+        st.markdown(f"**Nivel:** `<span style='color:#f59e0b; font-weight:bold;'>{st.session_state.english_level}</span>`")
         st.write(f"**XP:** {st.session_state.xp}")
     if st.button("🔄 Reset Protocol"):
         for key in list(st.session_state.keys()): del st.session_state[key]
         st.rerun()
 
-# --- FLUJO ---
+# --- FLUJO PRINCIPAL ---
 
 if st.session_state.english_level == "No Evaluado":
-    # --- PANTALLA INICIAL ---
+    # 1. HOME
     if st.session_state.screen == 'home':
         st.markdown("""
             <div class="hero-box">
                 <h1>Executive Mastery Protocol</h1>
-                <p>Auditoría de 16 etapas iniciada. Selecciona tu área de mando.</p>
+                <p>Auditoría de 16 etapas iniciada. Selecciona tu especialidad para activar el simulador.</p>
             </div>
         """, unsafe_allow_html=True)
         col1, _ = st.columns([1, 1])
@@ -201,7 +224,7 @@ if st.session_state.english_level == "No Evaluado":
             st.markdown("<div class='executive-card'>", unsafe_allow_html=True)
             name = st.text_input("Nombre Completo:")
             area = st.selectbox("Especialidad Táctica:", list(DYNAMIC_MCQ.keys()))
-            if st.button("Activar Protocolo de 16 Etapas 🧠"):
+            if st.button("Iniciar Protocolo 16 Etapas 🧠"):
                 if name:
                     st.session_state.user_name = name
                     st.session_state.user_area = area
@@ -209,15 +232,15 @@ if st.session_state.english_level == "No Evaluado":
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- EXAMEN (12 MCQ + 4 AI) ---
+    # 2. EXAMEN (12 MCQ + 4 AI)
     elif st.session_state.screen == 'placement_test':
-        questions = DYNAMIC_MCQ.get(st.session_state.user_area, DYNAMIC_MCQ["Operaciones & Supply Chain"])
+        questions = DYNAMIC_MCQ.get(st.session_state.user_area, DYNAMIC_MCQ["Otra"])
         total_mcq = len(questions)
         total_ai = 4
         total_steps = total_mcq + total_ai
         current_step = st.session_state.placement_step
         
-        st.title(f"🎯 Etapa {current_step + 1} de {total_steps}")
+        st.title(f"🎯 Etapa {current_step + 1} de {total_steps} ({st.session_state.user_area})")
         st.progress(current_step / total_steps)
 
         if current_step < total_mcq:
@@ -231,13 +254,13 @@ if st.session_state.english_level == "No Evaluado":
         else:
             ai_step_idx = current_step - total_mcq
             if not st.session_state.dynamic_scenarios:
-                with st.spinner("Generando escenarios personalizados..."):
-                    prompt = f"Generate 4 distinct executive scenarios for a {st.session_state.user_area} leader. Format: Scenario 1 --- Scenario 2..."
+                with st.spinner("Generando 4 escenarios dinámicos con IA..."):
+                    prompt = f"Generate 4 distinct, very tough executive scenarios for a {st.session_state.user_area} leader. Focus on crisis and authority. Format: Scenario 1 --- Scenario 2 --- Scenario 3 --- Scenario 4"
                     res = call_ai(prompt, API_KEY)
                     st.session_state.dynamic_scenarios = res.split('---')
 
             current_scenario = st.session_state.dynamic_scenarios[ai_step_idx]
-            st.markdown(f"<div class='executive-card'><b>Escenario AI:</b><br><br>{current_scenario}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='executive-card'><b>Escenario AI {ai_step_idx + 1}:</b><br><br>{current_scenario}</div>", unsafe_allow_html=True)
             ans = st.text_area("Respuesta Ejecutiva:", key=f"ai_ans_{ai_step_idx}")
             st_speech_to_text(key=f"voice_{ai_step_idx}")
             if st.button("Validar Etapa"):
@@ -246,12 +269,13 @@ if st.session_state.english_level == "No Evaluado":
                     st.session_state.placement_step += 1
                     if st.session_state.placement_step == total_steps: st.session_state.screen = 'finalizing'
                     st.rerun()
+                else: st.warning("Por favor desarrolla más tu respuesta.")
 
-    # --- FINALIZACIÓN ---
+    # 3. FINALIZACIÓN
     elif st.session_state.screen == 'finalizing':
-        with st.spinner("Auditoría en curso..."):
+        with st.spinner("Auditando nivel de autoridad..."):
             ai_text = "\n".join([f"Q: {x['q']}\nA: {x['a']}" for x in st.session_state.placement_ai_responses])
-            prompt = f"Audit this {st.session_state.user_area} expert. MCQ Score: {st.session_state.placement_score}. Answers: {ai_text}. Provide CEFR Level, Final Score (0-100), and Detailed Feedback in Spanish including errors and pro tips."
+            prompt = f"Audit this {st.session_state.user_area} expert. MCQ Score: {st.session_state.placement_score}. Open responses: {ai_text}. Determine CEFR Level, Score 0-100, Diagnostic of weaknesses, Error Feedback, and 2 Pro Tips in Spanish."
             res = call_ai(prompt, API_KEY)
             st.session_state.placement_eval_detailed = res
             for level in ["C2", "C1", "B2", "B1"]:
@@ -263,93 +287,59 @@ if st.session_state.english_level == "No Evaluado":
     elif st.session_state.screen == 'results':
         st.markdown(f"<div class='level-box'><h1>{st.session_state.english_level}</h1></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='executive-card'><p style='white-space: pre-wrap;'>{st.session_state.placement_eval_detailed}</p></div>", unsafe_allow_html=True)
-        if st.button("Unlock War Room ⚔️"):
+        if st.button("Desbloquear War Room ⚔️"):
             st.session_state.screen = 'dashboard'
             st.rerun()
 
-# --- WAR ROOM (DASHBOARD COMPLETO) ---
+# --- FASE 2: WAR ROOM (RESTAURADO CON FEEDBACK) ---
 else:
     st.title(f"🛡️ War Room: {st.session_state.user_name}")
-    tabs = st.tabs(["📅 Roadmap", "🤖 Combat Lab", "⚔️ Power Verbs", "🔥 The Forge", "📖 Enciclopedia"])
+    tabs = st.tabs(["📅 Roadmap 30 Días", "🤖 AI Lab", "⚔️ Power Verbs", "🔥 The Forge", "📖 Enciclopedia"])
     
-    # 1. ROADMAP
     with tabs[0]:
         st.subheader("Tu Ruta de Transformación Táctica")
         for plan in THIRTY_DAY_PLAN:
             is_active = "day-active" if plan['day'] == st.session_state.current_day else ""
-            st.markdown(f"""
-                <div class="day-card {is_active}">
-                    <b>DÍA {plan['day']}</b> • {plan['title']}
-                    <p style='font-size: 0.9em; color: #94a3b8;'>{plan['focus']}</p>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"<div class='day-card {is_active}'><b>DÍA {plan['day']}</b> • {plan['title']}<br><small>{plan['focus']}</small></div>", unsafe_allow_html=True)
 
-    # 2. COMBAT LAB (CON FEEDBACK Y TIPS PRO)
     with tabs[1]:
         mission = next((p for p in THIRTY_DAY_PLAN if p['day'] == st.session_state.current_day), THIRTY_DAY_PLAN[-1])
         st.subheader(f"Misión: {mission['title']}")
-        
-        if st.button("🎙️ Generar Escenario Táctico"):
-            with st.spinner("Preparando..."):
-                prompt = f"You are an Elite Mentor. Ask a challenging question about {mission['focus']} to a {st.session_state.user_area} expert. Level {st.session_state.english_level}."
-                st.session_state.daily_q = call_ai(prompt, API_KEY)
+        if st.button("🎙️ Generar Escenario con el Mentor"):
+            with st.spinner("Preparando entrenamiento..."):
+                st.session_state.daily_q = call_ai(f"Elite Mentor. Tough question about {mission['focus']} for a {st.session_state.user_area} expert.", API_KEY)
                 st_text_to_speech(st.session_state.daily_q)
-        
         if 'daily_q' in st.session_state:
-            st.markdown(f"<div class='executive-card'><b>Mentor:</b> {st.session_state.daily_q}</div>", unsafe_allow_html=True)
-            ans = st.text_area("Tu respuesta:")
-            st_speech_to_text(key="combat_voice")
-            
-            if st.button("Auditar Respuesta Ejecutiva"):
-                with st.spinner("Auditando..."):
-                    # Prompt que fuerza Feedback y Tips Pro
-                    prompt = f"""Evaluate: {ans}. 
-                    Provide in SPANISH:
-                    1. SCORE (0-100)
-                    2. FEEDBACK TÉCNICO: ¿Qué errores gramaticales o de autoridad hubo?
-                    3. TIP PRO: Un consejo de nivel VP para mejorar esta respuesta específica.
-                    4. VERSIÓN BOARDROOM: El script perfecto en inglés.
-                    """
-                    feedback = call_ai(prompt, API_KEY)
-                    st.markdown(f"<div class='level-box' style='background-color: #1e293b; border-left-color: #f59e0b;'>{feedback}</div>", unsafe_allow_html=True)
-                    st.session_state.xp += 100
+            st.info(st.session_state.daily_q)
+            ans = st.text_area("Responde:")
+            st_speech_to_text(key="lab_voice")
+            if st.button("Auditar Respuesta"):
+                feedback = call_ai(f"Evaluate answer: {ans}. Give SCORE, Technical Feedback, and 1 Pro Tip in Spanish.", API_KEY)
+                st.markdown(f"<div class='level-box'>{feedback}</div>", unsafe_allow_html=True)
 
-    # 3. POWER VERBS (CON FEEDBACK Y TIPS PRO)
     with tabs[2]:
-        st.subheader("Combate de Reflejos: Power Verbs")
+        st.subheader("Power Verbs Drill")
         drill = st.session_state.current_drill
-        st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='executive-card'>Junior: '{drill[0]}'</div>", unsafe_allow_html=True)
         pv_ans = st.text_input("Versión Ejecutiva:")
-        
-        if st.button("Validar Impacto 🎯"):
+        if st.button("Validar Impacto"):
             if drill[1].lower() in pv_ans.lower():
-                st.success("¡Excelente! Has neutralizado la frase básica.")
+                st.success("¡Correcto!")
                 st.session_state.xp += 50
-                st.info(f"💡 **TIP PRO:** '{drill[1].split()[1]}' es un verbo de acción que implica liderazgo y responsabilidad total. Úsalo en tus juntas de resultados.")
-                time.sleep(2)
                 st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
                 st.rerun()
-            else:
-                st.error(f"Sigue siendo básico. La frase letal es: '{drill[1]}'")
-                st.caption(f"💡 **TIP PRO:** Evita verbos como 'fixed' o 'did'. Usa verbos que demuestren un proceso o una estrategia, como 'rectified' o 'orchestrated'.")
+            else: st.error(f"Usa: '{drill[1]}'")
 
-    # 4. THE FORGE (CON FEEDBACK Y TIPS PRO)
     with tabs[3]:
-        st.subheader("La Fragua: Forja de Logros")
-        draft = st.text_area("Ingresa un logro básico (ej: Reduje scrap):")
-        if st.button("⚒️ Forjar Logro VP"):
-            with st.spinner("Forjando..."):
-                res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA with a Pro Tip in Spanish: {draft}", API_KEY)
-                st.markdown(f"<div class='executive-card'><b>Resultado VP:</b><br>{res}</div>", unsafe_allow_html=True)
+        st.subheader("The Forge")
+        draft = st.text_area("Ingresa un logro:")
+        if st.button("⚒️ Forjar"):
+            res = call_ai(f"Transform to STAR executive achievement with a Pro Tip: {draft}", API_KEY)
+            st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
 
-    # 5. ENCICLOPEDIA
     with tabs[4]:
-        st.subheader("Enciclopedia Técnica")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("<span class='badge-ops'>🏭 Ops</span> EBITDA, Hard Savings, Lead-time.", unsafe_allow_html=True)
-        with col2:
-            st.markdown("<span class='badge-tech'>🧬 Tech</span> SQL, BigQuery, Cpk, RCA.", unsafe_allow_html=True)
+        st.subheader("Enciclopedia")
+        st.markdown("<span class='badge-ops'>🏭 Ops</span> EBITDA, S&OP, IATF, RCA.", unsafe_allow_html=True)
 
 st.divider()
-st.caption("Protocolo desarrollado por Ing. Fernando Montes Delgado | Feedback & Pro Tips Enabled")
+st.caption("Protocolo desarrollado por Ing. Fernando Montes Delgado | All Areas Restored | Feedback Enabled")
