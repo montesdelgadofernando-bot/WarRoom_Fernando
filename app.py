@@ -1,202 +1,385 @@
-import streamlit as st
-import requests
-import json
-import time
-import random
-from datetime import datetime
+import React, { useState } from 'react';
+import { 
+  Play, CheckCircle2, XCircle, Briefcase, BookOpen, 
+  ArrowRight, RotateCcw, Award, Target, Mic, 
+  Calendar, Zap, TrendingUp, ShieldAlert, Lock
+} from 'lucide-react';
 
-# --- CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(
-    page_title="AI War Room v11.0 - Fernando Montes",
-    page_icon="🦅",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+// --- DATOS DEL EXAMEN (Diagnóstico) ---
+const quizData = [
+  {
+    id: 1,
+    question: "En una entrevista te piden hablar de tus logros financieros. ¿Cuál es la forma más ejecutiva de traducir: 'Logré ahorros de $274,000 anuales'?",
+    options: [
+      "I made $274,000 dollars in savings this year.",
+      "I successfully delivered $274,000 USD in annual audited hard savings.",
+      "I got $274,000 of saved money per year.",
+      "My work saved $274,000 annually."
+    ],
+    correctIndex: 1,
+    explanation: "'Successfully delivered' demuestra liderazgo accionable, y 'audited hard savings' es el término técnico exacto que un CFO o VP de Operaciones quiere escuchar."
+  },
+  {
+    id: 2,
+    question: "Durante una junta global, necesitas explicar que hubo un problema en el piso de producción, pero ya lo están resolviendo. ¿Qué frase proyecta más control?",
+    options: [
+      "We have a problem in the plant, but we are fixing it now.",
+      "Things went wrong on the floor, but we are working on it.",
+      "We experienced a line stoppage, but we are currently deploying a proactive countermeasure.",
+      "The production stopped, but it will be okay soon."
+    ],
+    correctIndex: 2,
+    explanation: "'Experienced a line stoppage' es vocabulario técnico. 'Deploying a proactive countermeasure' proyecta una mentalidad preventiva y de dominio operativo (8D/Lean)."
+  },
+  {
+    id: 3,
+    question: "El entrevistador de Novacard te hace una pregunta compleja sobre la integración de IA y no entiendes exactamente a qué se refiere. ¿Cómo ganas tiempo sin perder autoridad?",
+    options: [
+      "I'm sorry, I don't understand your question. Can you repeat?",
+      "What do you mean by that? My English is not perfect.",
+      "That's an insightful point. Could you please elaborate on the specific aspect of AI deployment you are referring to?",
+      "Can you say that again but slower?"
+    ],
+    correctIndex: 2,
+    explanation: "Nunca pidas perdón por no entender. 'Could you please elaborate...' te pone en una posición de diálogo de negocios de alto nivel, no de alumno a maestro."
+  }
+];
 
-# --- API CONFIG (Gemini 2.5 Flash) ---
-apiKey = "" 
-API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={apiKey}"
+// --- EL PROGRAMA LETAL DE 30 DÍAS ---
+const thirtyDayPlan = [
+  {
+    day: 1,
+    phase: "Fase 1: Cimientos de Autoridad",
+    title: "El Pitch del Millón de Dólares (EBITDA)",
+    icon: <TrendingUp className="w-6 h-6 text-amber-500" />,
+    mission: "Destruir el inglés 'Junior' y forjar tu introducción ejecutiva.",
+    task: "Escribe tu presentación personal de 3 líneas enfocándote SOLO en cómo tu trabajo protege el EBITDA de la empresa. Prohibido usar la palabra 'help' o 'work'. Usa 'Spearhead', 'Orchestrate' o 'Optimize'.",
+    action: "Grábate en el celular leyendo tu pitch 15 veces seguidas hasta que tu respiración sea fluida y no titubees en las cifras ($274k).",
+    locked: false
+  },
+  {
+    day: 7,
+    phase: "Fase 1: Cimientos de Autoridad",
+    title: "Defensa de Auditoría (IATF & VDA)",
+    icon: <ShieldAlert className="w-6 h-6 text-emerald-500" />,
+    mission: "Aprender a rebatir hallazgos de auditores alemanes y globales.",
+    task: "Un auditor te dice: 'I see a gap in your FMEA updates'. Tu respuesta no puede ser 'I will fix it'. Tienes que responder usando: 'Containment actions', 'Risk-based thinking' y 'Process maturity'.",
+    action: "Redacta un correo en inglés de 5 líneas respondiendo al auditor con el plan de acción (8D format).",
+    locked: false
+  },
+  {
+    day: 15,
+    phase: "Fase 2: Dominio Técnico y Data",
+    title: "SQL, BigQuery & Data Storytelling",
+    icon: <Zap className="w-6 h-6 text-blue-500" />,
+    mission: "Explicar sistemas complejos a directivos que no son técnicos.",
+    task: "Explica cómo usaste consultas de SQL para lograr el 100% de IRA (Inventory Record Accuracy) en Mercado Libre.",
+    action: "Frente al espejo, explica el proceso en voz alta durante 2 minutos ininterrumpidos usando conectores como: 'Furthermore', 'Consequently', 'By leveraging data sets...'.",
+    locked: false
+  },
+  {
+    day: 30,
+    phase: "Fase 3: Nivel 'Boardroom' (Mesa Directiva)",
+    title: "La Prueba de Fuego (CEO Interview)",
+    icon: <Target className="w-6 h-6 text-rose-500" />,
+    mission: "Simulación de estrés de alto nivel.",
+    task: "Imagina que el CEO global te dice: 'Fernando, our OPEX is too high. What is your 90-day strategy to reduce scrap by 20% without impacting throughput?'",
+    action: "Prepara una respuesta de 3 puntos (First..., Second..., Ultimately...). Debes incluir Prompts de IA, Core Tools y Estrategia Financiera. Graba la respuesta en video.",
+    locked: true
+  }
+];
 
-def call_ai(prompt, system_instruction):
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "systemInstruction": {"parts": [{"text": system_instruction}]}
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState('home'); 
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [activeDay, setActiveDay] = useState(null);
+
+  // --- NAVEGACIÓN ---
+  const startQuiz = () => {
+    setCurrentScreen('quiz');
+    setCurrentQuestionIndex(0);
+    setScore(0);
+    setSelectedOption(null);
+    setShowExplanation(false);
+  };
+
+  const handleOptionSelect = (index) => {
+    if (showExplanation) return; 
+    setSelectedOption(index);
+    setShowExplanation(true);
+    if (index === quizData[currentQuestionIndex].correctIndex) {
+      setScore(score + 1);
     }
-    for delay in [1, 2, 4]:
-        try:
-            response = requests.post(API_URL, json=payload, timeout=10)
-            if response.status_code == 200:
-                result = response.json()
-                return result['candidates'][0]['content']['parts'][0]['text']
-        except Exception:
-            time.sleep(delay)
-    return "The AI Coach is momentarily offline. Please click the button again."
+  };
 
-# --- ESTILOS PREMIUM E INTERFAZ INTUITIVA ---
-st.markdown("""
-    <style>
-    .main { background-color: #0f172a; color: #f8fafc; }
-    .stButton>button {
-        width: 100%; border-radius: 10px; height: 3em; 
-        background-color: #1e293b; border: 1px solid #3b82f6;
-        color: white; font-weight: bold; transition: 0.3s;
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < quizData.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setSelectedOption(null);
+      setShowExplanation(false);
+    } else {
+      setCurrentScreen('results');
     }
-    .stButton>button:hover { background-color: #3b82f6; border: none; transform: translateY(-2px); }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: #1e293b; padding: 12px; border-radius: 15px; }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px; background-color: #334155; border-radius: 8px; 
-        padding: 10px 20px; font-weight: bold; color: #cbd5e1; border: none;
-    }
-    .stTabs [aria-selected="true"] { background-color: #3b82f6 !important; color: white !important; }
-    .day-card {
-        padding: 15px; border-radius: 12px; text-align: center; font-size: 0.85em;
-        border: 2px solid #334155; transition: 0.3s; margin-bottom: 10px;
-    }
-    .day-current { background-color: #1e40af; border-color: #3b82f6; box-shadow: 0 0 20px #3b82f6; }
-    .day-done { background-color: #065f46; border-color: #10b981; opacity: 0.8; }
-    .executive-card {
-        background: #1e293b; padding: 25px; border-radius: 15px;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4); border-left: 8px solid #3b82f6;
-    }
-    .guide-box {
-        background: #1e3a8a; padding: 15px; border-radius: 10px;
-        border-left: 5px solid #60a5fa; margin-bottom: 20px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+  };
 
-# --- PLAN MAESTRO ---
-THIRTY_DAY_PLAN = {
-    1: "Executive Pitch & Value Proposition",
-    2: "EBITDA, Hard Savings & Financial Reporting",
-    3: "IATF 16949: Risk-Based Thinking & Core Tools",
-    4: "VDA 6.3: Process Maturity & German Standards",
-    5: "SQL & Big Data: Strategic Data Extraction",
-    6: "Logistics: S&OP, IRA & Supply Chain Resilience",
-    7: "AI & Prompt Engineering for Operations",
-    8: "Root Cause Analysis (8D) & Predictive Modeling",
-    9: "OEM Negotiations & Stakeholder Management",
-    10: "Strategic Cost Reduction (OpEx vs CapEx)"
-}
+  const goToTraining = () => setCurrentScreen('training');
+  const goHome = () => setCurrentScreen('home');
 
-# --- INITIALIZATION ---
-if 'current_day' not in st.session_state: st.session_state.current_day = 1
-if 'xp' not in st.session_state: st.session_state.xp = 0
-if 'show_guide' not in st.session_state: st.session_state.show_guide = True
+  // --- RENDERIZADO DE PANTALLAS ---
 
-# --- SIDEBAR ---
-with st.sidebar:
-    st.title("🦅 Mission Control")
-    st.write(f"**Leader:** Fernando Montes")
-    st.divider()
-    st.metric("Sprint Progress", f"Day {st.session_state.current_day}/30")
-    st.progress(st.session_state.current_day / 30)
-    st.write(f"**Global XP:** {st.session_state.xp}")
-    st.divider()
-    
-    if st.button("🏁 Completar Día y Avanzar"):
-        st.session_state.current_day = min(st.session_state.current_day + 1, 30)
-        st.session_state.xp += 100
-        st.rerun()
+  // 1. HOME: Psicología de Autoridad (Índigo oscuro) + Llamado a la acción (Ámbar)
+  const renderHome = () => (
+    <div className="flex flex-col items-center justify-center min-h-[600px] text-center p-8 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-2xl border border-indigo-900/50 relative overflow-hidden">
+      {/* Efecto de fondo sutil */}
+      <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none"></div>
+      
+      <div className="z-10 flex flex-col items-center">
+        <div className="bg-indigo-900/50 p-4 rounded-full mb-6 border border-indigo-500/30">
+          <Briefcase className="w-16 h-16 text-amber-500" />
+        </div>
+        <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
+          Executive Mastery Protocol
+        </h1>
+        <p className="text-xl text-amber-400 font-medium mb-4 tracking-wide">
+          Fernando Montes | Target: C-Level & VP Roles
+        </p>
+        <p className="text-base text-slate-300 mb-10 max-w-lg leading-relaxed">
+          Este no es un curso de inglés básico. Es un simulador de presión diseñado para transformar tu experiencia operativa en <b>autoridad lingüística corporativa</b> en 30 días.
+        </p>
         
-    if st.button("⚙️ Reiniciar Todo el Plan"):
-        st.session_state.current_day = 1
-        st.session_state.xp = 0
-        st.rerun()
-    
-    st.checkbox("Mostrar guías de ayuda", value=True, key="help_toggle")
-
-# --- UI PRINCIPAL ---
-st.title("🛡️ Executive AI War Room v11.0")
-st.write("Ecosistema de inmersión táctica diseñado para el dominio del inglés técnico.")
-
-if st.session_state.help_toggle:
-    st.markdown("""
-    <div class="guide-box">
-        <b>💡 Guía Rápida:</b> Usa el <b>Roadmap</b> para ver tu plan mensual. En el <b>Combat Lab</b>, desafía a la IA para practicar respuestas reales. 
-        En <b>The Forge</b>, pega tus logros y la IA los redactará a nivel Director.
+        <div className="flex flex-col sm:flex-row gap-5 w-full max-w-md">
+          <button 
+            onClick={startQuiz}
+            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 px-6 py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+          >
+            <Play className="w-6 h-6" /> Iniciar Diagnóstico
+          </button>
+          <button 
+            onClick={goToTraining}
+            className="flex-1 flex items-center justify-center gap-2 bg-indigo-800/80 hover:bg-indigo-700 text-white border border-indigo-500/30 px-6 py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg"
+          >
+            <Calendar className="w-6 h-6" /> Plan 30 Días
+          </button>
+        </div>
+      </div>
     </div>
-    """, unsafe_allow_html=True)
+  );
 
-tabs = st.tabs(["📅 Tactical Roadmap", "🤖 AI Combat Lab", "🔥 The Forge (STAR)", "📚 Knowledge Base"])
+  // 2. QUIZ: Psicología de Foco (Blanco limpio, contrastes altos para corrección)
+  const renderQuiz = () => {
+    const currentQuestion = quizData[currentQuestionIndex];
+    const isAnswered = showExplanation;
 
-# --- TAB 1: ROADMAP ---
-with tabs[0]:
-    st.subheader("Plan de Operaciones: 30 Días")
-    cols = st.columns(7)
-    for i in range(1, 15): # Mostramos los primeros 14 días para claridad
-        with cols[(i-1)%7]:
-            status = ""
-            if i == st.session_state.current_day: status = "day-current"
-            elif i < st.session_state.current_day: status = "day-done"
+    return (
+      <div className="min-h-[600px] p-8 bg-white rounded-2xl shadow-2xl flex flex-col border border-slate-100">
+        <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-100">
+          <span className="text-sm font-extrabold text-indigo-900 uppercase tracking-widest flex items-center gap-2">
+            <Target className="w-5 h-5 text-amber-500"/> Escenario {currentQuestionIndex + 1} / {quizData.length}
+          </span>
+          <span className="bg-slate-900 text-amber-400 text-sm font-bold px-4 py-1.5 rounded-full shadow-inner">
+            Score: {score}
+          </span>
+        </div>
+
+        <h2 className="text-2xl font-bold text-slate-800 mb-8 leading-normal">
+          {currentQuestion.question}
+        </h2>
+
+        <div className="space-y-4 flex-grow">
+          {currentQuestion.options.map((option, index) => {
+            let btnClass = "w-full text-left p-5 rounded-xl border-2 transition-all duration-200 font-semibold text-[1.05rem] ";
             
-            st.markdown(f"""
-                <div class="day-card {status}">
-                    <b>DAY {i}</b><br>
-                    <small>{THIRTY_DAY_PLAN.get(i, "Advanced Ops")[:15]}...</small>
+            if (!isAnswered) {
+              btnClass += "border-slate-200 text-slate-600 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-900 shadow-sm hover:shadow-md";
+            } else {
+              if (index === currentQuestion.correctIndex) {
+                btnClass += "border-emerald-500 bg-emerald-50 text-emerald-800 shadow-md transform scale-[1.02]"; 
+              } else if (index === selectedOption) {
+                btnClass += "border-rose-500 bg-rose-50 text-rose-800"; 
+              } else {
+                btnClass += "border-slate-100 text-slate-400 opacity-60"; 
+              }
+            }
+
+            return (
+              <button 
+                key={index}
+                onClick={() => handleOptionSelect(index)}
+                disabled={isAnswered}
+                className={btnClass}
+              >
+                <div className="flex justify-between items-center">
+                  <span>{option}</span>
+                  {isAnswered && index === currentQuestion.correctIndex && <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0 ml-3" />}
+                  {isAnswered && index === selectedOption && index !== currentQuestion.correctIndex && <XCircle className="w-6 h-6 text-rose-500 flex-shrink-0 ml-3" />}
                 </div>
-            """, unsafe_allow_html=True)
-    
-    st.divider()
-    current_topic = THIRTY_DAY_PLAN.get(st.session_state.current_day, "Continuous Improvement")
-    st.markdown(f"""
-    <div class="executive-card">
-        <h3 style="color:#60a5fa;">Misión de Hoy: {current_topic}</h3>
-        <p>Tu objetivo es dominar la terminología de <b>{current_topic}</b> para sonar como un líder global.</p>
-    </div>
-    """, unsafe_allow_html=True)
+              </button>
+            );
+          })}
+        </div>
 
-# --- TAB 2: AI COMBAT LAB ---
-with tabs[1]:
-    st.subheader("Entrenamiento de Alta Presión")
-    st.write("Haz clic en el botón para que la IA genere un escenario basado en tu misión de hoy.")
+        {showExplanation && (
+          <div className="mt-8 p-6 bg-indigo-50 border-l-4 border-indigo-600 rounded-r-xl shadow-sm animate-fade-in">
+            <p className="text-base text-indigo-950">
+              <span className="font-extrabold text-indigo-700 uppercase tracking-wider text-sm block mb-1">Análisis Estratégico</span>
+              {currentQuestion.explanation}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-8 flex justify-end">
+          <button
+            onClick={handleNextQuestion}
+            disabled={!isAnswered}
+            className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 ${
+              isAnswered 
+                ? 'bg-slate-900 text-white hover:bg-indigo-900 hover:shadow-lg transform hover:-translate-y-1' 
+                : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+            }`}
+          >
+            {currentQuestionIndex < quizData.length - 1 ? 'Siguiente Escenario' : 'Ver Diagnóstico'} 
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // 3. RESULTS: Énfasis en la recompensa y el plan a seguir
+  const renderResults = () => {
+    const percentage = (score / quizData.length) * 100;
     
-    if st.button("🎯 Generar Desafío Técnico de Hoy"):
-        with st.spinner("La IA está preparando el escenario..."):
-            system_prompt = f"""You are a CEO interviewing Fernando. Today is Day {st.session_state.current_day}: {current_topic}.
-            Ask one tough, direct technical question in English. Fernando must prove he is a Director-level leader."""
-            st.session_state.active_challenge = call_ai("Ask me a tough question about today's topic.", system_prompt)
-    
-    if 'active_challenge' in st.session_state:
-        st.markdown(f"<div class='executive-card'><b>Auditor/CEO:</b><br>{st.session_state.active_challenge}</div>", unsafe_allow_html=True)
-        response = st.text_area("Tu Respuesta Ejecutiva (en Inglés):", placeholder="Type your answer here...", height=150)
+    return (
+      <div className="min-h-[600px] flex flex-col items-center justify-center p-8 bg-gradient-to-b from-white to-slate-50 rounded-2xl shadow-2xl text-center border border-slate-200">
+        <Award className={`w-28 h-28 mb-6 ${percentage >= 80 ? 'text-emerald-500 drop-shadow-lg' : 'text-amber-500 drop-shadow-md'}`} />
+        <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Diagnóstico Táctico Completado</h2>
+        <p className={`text-6xl font-black mb-6 ${percentage >= 80 ? 'text-emerald-600' : 'text-indigo-600'}`}>
+          {percentage}%
+        </p>
         
-        if st.button("🚀 Enviar Respuesta para Análisis"):
-            if not response:
-                st.warning("Escribe algo antes de enviar.")
-            else:
-                with st.spinner("Analizando tu autoridad lingüística..."):
-                    critique_prompt = f"Analyze this response to: {st.session_state.active_challenge}. Response: {response}. Provide: 1. Score (0-100), 2. Correction, 3. The 'Director-level' way to say it."
-                    feedback = call_ai(critique_prompt, "You are a CEO giving feedback.")
-                    st.markdown(f"<div class='executive-card' style='border-left-color:#10b981;'><b>Feedback del Coach:</b><br>{feedback}</div>", unsafe_allow_html=True)
-                    st.session_state.xp += 50
+        <div className="bg-slate-900 p-6 rounded-xl max-w-lg mb-10 shadow-lg text-left">
+          <h3 className="text-amber-400 font-bold mb-2 uppercase tracking-wide text-sm">Veredicto del Sistema:</h3>
+          <p className="text-slate-200 leading-relaxed text-sm">
+            {percentage === 100 
+              ? "Instinto corporativo impecable. Tienes el vocabulario. Ahora el reto de 30 días forzará tu fluidez verbal bajo presión extrema." 
+              : "Detectamos mentalidad de alto nivel pero con 'fugas' en el vocabulario técnico en inglés. Un CFO o VP necesita precisión absoluta. El programa de 30 días cerrará esa brecha."}
+          </p>
+        </div>
+        
+        <div className="flex gap-4 w-full max-w-md">
+          <button 
+            onClick={goToTraining}
+            className="flex-1 flex justify-center items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 px-6 py-4 rounded-xl font-bold transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg"
+          >
+            <Zap className="w-5 h-5" /> Iniciar Reto 30 Días
+          </button>
+          <button 
+            onClick={startQuiz}
+            className="flex items-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-4 rounded-xl font-bold transition-all"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
-# --- TAB 3: THE FORGE ---
-with tabs[2]:
-    st.subheader("The Forge: Optimización de Logros")
-    st.write("La IA reescribirá tus logros para que impacten en el EBITDA.")
-    
-    user_draft = st.text_area("Pega aquí un logro de tu CV (Español o Inglés):", placeholder="Ej: Ahorré $274k en cajas en Mercado Libre usando SQL.")
-    
-    if st.button("⚒️ Forjar a Nivel Director"):
-        if not user_draft:
-            st.warning("Ingresa un logro para forjar.")
-        else:
-            with st.spinner("Refinando el argumento..."):
-                forge_prompt = "Convert this into a high-level executive STAR paragraph. Use verbs like 'Spearheaded', 'Orchestrated', 'Leveraged'. Focus on Hard Savings and EBITDA impact."
-                forged_result = call_ai(user_draft, forge_prompt)
-                st.markdown(f"<div class='executive-card'><b>Versión Letal:</b><br>{forged_result}</div>", unsafe_allow_html=True)
+  // 4. THE 30-DAY FORGE (Psicología de Compromiso y Progreso)
+  const renderTraining = () => (
+    <div className="min-h-[600px] bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      {/* Header del Plan */}
+      <div className="bg-indigo-950 p-6 border-b border-indigo-800/50 flex justify-between items-center sticky top-0 z-20">
+        <div>
+          <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-amber-500"/> El Plan de 30 Días
+          </h2>
+          <p className="text-indigo-300 text-sm mt-1">Sigue el protocolo. No te saltes días. Habla en voz alta.</p>
+        </div>
+        <button onClick={goHome} className="bg-slate-800 hover:bg-slate-700 text-white p-3 rounded-lg transition-colors border border-slate-600">
+          <RotateCcw className="w-5 h-5" />
+        </button>
+      </div>
 
-# --- TAB 4: ENCYCLOPEDIA ---
-with tabs[3]:
-    st.subheader("Base de Conocimiento Táctico")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.info("**Quality & Ops:** IATF 16949, VDA 6.3, PFMEA, Root Cause Analysis, 8D Reports.")
-    with c2:
-        st.info("**Data & Tech:** SQL Queries, BigQuery, Predictive Reliability, Prompt Engineering.")
-    st.write("Utiliza estos términos en tus respuestas para aumentar tu XP.")
+      {/* Contenido scrolleable */}
+      <div className="p-6 overflow-y-auto flex-grow space-y-6 bg-gradient-to-b from-slate-900 to-slate-800">
+        {thirtyDayPlan.map((day) => (
+          <div 
+            key={day.day} 
+            className={`relative p-6 rounded-xl border-2 transition-all duration-300 ${
+              day.locked 
+                ? 'bg-slate-800/50 border-slate-700 opacity-75 grayscale' 
+                : 'bg-white border-slate-200 hover:border-amber-400 hover:shadow-[0_8px_30px_rgba(245,158,11,0.15)] transform hover:-translate-y-1'
+            }`}
+          >
+            {day.locked && (
+              <div className="absolute top-4 right-4 text-slate-500 flex items-center gap-1 text-xs font-bold uppercase tracking-widest">
+                <Lock className="w-4 h-4" /> Bloqueado
+              </div>
+            )}
+            
+            <div className="flex items-start gap-4 mb-4">
+              <div className={`p-3 rounded-lg flex-shrink-0 ${day.locked ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                {day.icon}
+              </div>
+              <div>
+                <span className={`text-xs font-black tracking-widest uppercase block mb-1 ${day.locked ? 'text-slate-500' : 'text-indigo-600'}`}>
+                  Día {day.day} • {day.phase}
+                </span>
+                <h3 className={`text-xl font-bold ${day.locked ? 'text-slate-400' : 'text-slate-900'}`}>
+                  {day.title}
+                </h3>
+              </div>
+            </div>
 
-st.divider()
-st.caption(f"Executive English Mastery Suite | v11.0 | Fernando Montes Delgado | Session: {datetime.now().strftime('%Y-%m-%d')}")
+            <div className={`space-y-4 ${day.locked ? 'text-slate-500' : 'text-slate-600'}`}>
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <p className="text-sm"><strong>🎯 Misión:</strong> {day.mission}</p>
+              </div>
+              <p className="text-sm"><strong>📝 Ejercicio Escrito:</strong> {day.task}</p>
+              
+              <div className={`p-4 rounded-lg border-l-4 text-sm font-medium ${
+                day.locked ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-amber-50 border-amber-500 text-amber-900'
+              }`}>
+                <strong>🔥 Acción Requerida:</strong> {day.action}
+              </div>
+            </div>
+
+            {!day.locked && (
+              <button className="mt-5 w-full bg-slate-900 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2">
+                <Mic className="w-4 h-4"/> Iniciar Práctica de Hoy
+              </button>
+            )}
+          </div>
+        ))}
+        
+        <div className="text-center pt-4 pb-8">
+          <p className="text-slate-500 text-sm font-medium">Completa las misiones diarias para desbloquear los siguientes niveles estratégicos.</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="w-full max-w-4xl mx-auto font-sans p-4">
+      {currentScreen === 'home' && renderHome()}
+      {currentScreen === 'quiz' && renderQuiz()}
+      {currentScreen === 'results' && renderResults()}
+      {currentScreen === 'training' && renderTraining()}
+      
+      {/* Estilos globales para animaciones */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.4s ease-out forwards;
+        }
+      `}} />
+    </div>
+  );
+}
 
