@@ -80,7 +80,7 @@ POWER_VERBS_DRILLS = [
 # --- FUNCIONES DE IA ---
 def call_ai(prompt, api_key):
     if not api_key: return "⚠️ Error: Falta la API Key en la configuración del servidor."
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
         response = requests.post(url, json=payload, timeout=15)
@@ -310,3 +310,4 @@ else:
             st.write("- **S&OP:** Sales and Operations Planning.")
             st.write("- **NOM:** Normas Oficiales Mexicanas.")
             st.write("- **Countermeasure:** Acción de contención inmediata.")
+
