@@ -1,225 +1,174 @@
 import streamlit as st
+import requests
+import json
 import time
 import random
+from datetime import datetime
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
-    page_title="Executive English Mastery - Master Blueprint",
+    page_title="Executive English AI Coach - Fernando Montes",
     page_icon="🦅",
     layout="wide"
 )
 
-# --- ESTILOS PROFESIONALES (Premium Suite) ---
+# --- API CONFIG (Gemini 2.5 Flash) ---
+# La plataforma provee la llave automáticamente
+apiKey = "" 
+API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={apiKey}"
+
+def call_ai(prompt, system_instruction):
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "systemInstruction": {"parts": [{"text": system_instruction}]}
+    }
+    
+    # Implementación de Exponential Backoff para robustez
+    for delay in [1, 2, 4, 8, 16]:
+        try:
+            response = requests.post(API_URL, json=payload)
+            if response.status_code == 200:
+                result = response.json()
+                return result['candidates'][0]['content']['parts'][0]['text']
+        except Exception:
+            time.sleep(delay)
+    return "AI Coach busy. Please retry in a few seconds."
+
+# --- ESTILOS PREMIUM (Modo Ejecutivo Dark) ---
 st.markdown("""
     <style>
     .main { background-color: #0f172a; color: #f8fafc; }
-    .stTabs [data-baseweb="tab-list"] { gap: 12px; background-color: #1e293b; padding: 10px; border-radius: 15px; }
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: #1e293b; padding: 12px; border-radius: 15px; }
     .stTabs [data-baseweb="tab"] {
-        height: 50px; background-color: #334155; border-radius: 10px; 
-        padding: 10px 25px; font-weight: 700; color: #cbd5e1; border: none;
+        height: 50px; background-color: #334155; border-radius: 8px; 
+        padding: 10px 20px; font-weight: bold; color: #cbd5e1; border: none;
     }
     .stTabs [aria-selected="true"] { background-color: #3b82f6 !important; color: white !important; }
+    .day-card {
+        padding: 15px; border-radius: 10px; text-align: center; font-size: 0.85em;
+        border: 1px solid #334155; transition: 0.3s;
+    }
+    .day-current { background-color: #1e40af; border-color: #3b82f6; font-weight: bold; box-shadow: 0 0 15px #3b82f6; }
+    .day-done { background-color: #065f46; opacity: 0.7; }
     .executive-card {
         background: #1e293b; padding: 30px; border-radius: 20px;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); border-left: 8px solid #3b82f6;
-        margin-bottom: 25px;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4); border-left: 8px solid #3b82f6;
     }
-    .power-verb-card {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        color: white; padding: 15px; border-radius: 12px; margin-bottom: 10px;
-    }
-    .badge {
-        padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold;
-        display: inline-block; margin-bottom: 10px;
-    }
-    .badge-tech { background-color: #dbeafe; color: #1e40af; }
-    .badge-ops { background-color: #fef3c7; color: #92400e; }
-    .badge-compliance { background-color: #dcfce7; color: #166534; }
-    .star-box { background-color: #1e293b; border: 1px solid #3b82f6; padding: 20px; border-radius: 12px; color: #f8fafc; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- BASE DE DATOS MAESTRA (Consolidado Total v1.0 - v9.0) ---
-COURSE_DATA = {
-    "🚀 M1: Pitch & EBITDA Protection": [
-        {
-            "q": "How do you present the $274k savings at Mercado Libre to a CEO?",
-            "opts": ["I saved $274,000 in shipping boxes.", "I successfully delivered $274k USD in audited hard savings via packaging optimization.", "I reduced cost by 13% in the warehouse.", "I made a project to save $274k."],
-            "ans": 1,
-            "exp": "'Audited hard savings' es el término financiero que valida tu impacto real ante la dirección."
-        },
-        {
-            "q": "Define your role for a Director-level interview:",
-            "opts": ["I am a quality manager with engineering experience.", "I am an Operations Strategize specialized in protecting EBITDA through Lean-IA integration.", "I manage multi-functional teams in logistics.", "I solve quality problems for OEM clients."],
-            "ans": 1,
-            "exp": "Venderte como 'Strategist' te posiciona como un líder que entiende el negocio, no solo el piso de producción."
-        }
-    ],
-    "🛠️ M2: APQP, VDA 6.3 & IATF 16949": [
-        {
-            "q": "How do you describe 'Risk-based thinking' in an IATF audit?",
-            "opts": ["Thinking about problems before they happen.", "A proactive approach to identify and mitigate QMS threats via PFMEA analysis.", "Checking the quality sheet every day.", "Following the manual instructions exactly."],
-            "ans": 1,
-            "exp": "Es el núcleo de la norma IATF. Demuestra mentalidad preventiva y dominio de herramientas de calidad."
-        },
-        {
-            "q": "Explain the importance of VDA 6.3 to Audi/VW:",
-            "opts": ["It is a German quality checklist.", "It ensures process maturity and full adherence to OEM standards.", "I use it for German car manufacturers.", "It is the equivalent of ISO 9001 in Germany."],
-            "ans": 1,
-            "exp": "'Process maturity' es el KPI sagrado para los auditores alemanes."
-        }
-    ],
-    "📊 M3: SQL, BigQuery & Statistics": [
-        {
-            "q": "How do you use SQL in your operations?",
-            "opts": ["I look for info in the database.", "I execute complex queries to extract raw datasets for real-time KPI monitoring.", "I ask the IT team for the reports.", "I use computers to analyze the data."],
-            "ans": 1,
-            "exp": "Muestra autonomía técnica: tú extraes la data, tú la analizas y tú tomas decisiones basadas en ella."
-        },
-        {
-            "q": "Explain a P-value below 0.05 in a Lean project:",
-            "opts": ["The result is good.", "The result is statistically significant, allowing us to reject the null hypothesis.", "It means we saved money.", "There is a 5% error in the data."],
-            "ans": 1,
-            "exp": "Lenguaje de Green Belt: demuestras validez estadística en tus proyectos de mejora continua."
-        }
-    ],
-    "🤖 M4: AI & Prompt Engineering": [
-        {
-            "q": "How does AI enhance your Quality Management System?",
-            "opts": ["AI helps me write emails faster.", "We leverage Generative AI and Prompt Engineering to automate RCA and streamline QMS governance.", "I use ChatGPT to find the rules.", "AI is the future of the factory floor."],
-            "ans": 1,
-            "exp": "Indica que estás a la vanguardia (QMS 4.0) integrando tecnología avanzada en la gestión de calidad."
-        }
-    ],
-    "🇲🇽 M5: NOM & Compliance": [
-        {
-            "q": "Why is NOM compliance critical for your role in Mexico?",
-            "opts": ["Because it is the law in Mexico.", "Adherence to NOM ensures regulatory compliance and product safety in the local market.", "To avoid government penalties.", "It is a requirement for ISO 9001."],
-            "ans": 1,
-            "exp": "'Adherence' y 'Regulatory compliance' son las palabras que dan seguridad a una junta directiva internacional."
-        }
-    ]
-}
+# --- PLAN MAESTRO DE 30 DÍAS ---
+THIRTY_DAY_PLAN = {
+    1: "Executive Pitch & Value Proposition",
+    2: "EBITDA, Hard Savings & Financial Reporting",
+    3: "IATF 16949: Risk-Based Thinking & Core Tools",
+    4: "VDA 6.3: Process Maturity & German Standards",
+    5: "SQL & Big Data: Strategic Data Extraction",
+    6: "Logistics: S&OP, IRA & Supply Chain Resilience",
+    7: "AI & Prompt Engineering for Operations",
+    8: "Root Cause Analysis (8D) & Predictive Modeling",
+    9: "OEM Negotiations & Stakeholder Management",
+    10: "Strategic Cost Reduction (OpEx vs CapEx)"
+} # El sistema escala hasta el día 30 dinámicamente
 
-POWER_VERBS_DRILLS = [
-    ("I fixed the problem", "I rectified the non-conformance"),
-    ("I saved money", "I delivered substantial hard savings"),
-    ("I used data", "I leveraged data analytics to drive decision-making"),
-    ("I started a project", "I spearheaded a strategic initiative"),
-    ("I talked to the client", "I orchestrated cross-functional negotiations")
-]
-
-# --- LÓGICA DE ESTADO ---
+# --- ESTADO DE SESIÓN ---
+if 'current_day' not in st.session_state: st.session_state.current_day = 1
 if 'xp' not in st.session_state: st.session_state.xp = 0
-if 'level' not in st.session_state: st.session_state.level = 1
-if 'forged_star' not in st.session_state: st.session_state.forged_star = ""
-if 'q_idx' not in st.session_state: st.session_state.q_idx = 0
-if 'current_mod' not in st.session_state: st.session_state.current_mod = list(COURSE_DATA.keys())[0]
 
-# --- SIDEBAR (STATUS PANEL) ---
+# --- SIDEBAR ESTRATÉGICO ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", width=80)
-    st.title("Executive Intelligence")
-    st.write(f"**Leader:** Fernando Montes Delgado")
+    st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", width=70)
+    st.title("AI Command Center")
+    st.write(f"**Leader:** Fernando Montes")
     st.divider()
-    st.metric("Authority Level", f"LVL {st.session_state.level}")
-    st.write(f"XP Progress: {st.session_state.xp}/1000")
-    st.progress(min(st.session_state.xp / 1000, 1.0))
+    st.metric("Operational Progress", f"Day {st.session_state.current_day}/30")
+    st.progress(st.session_state.current_day / 30)
+    st.write(f"Experience (XP): {st.session_state.xp}")
     st.divider()
-    st.subheader("🛠️ Current Tech Stack")
-    st.code("SQL | BigQuery | AI\nLean Six Sigma GB\nIATF | VDA 6.3 | NOM", language="text")
+    if st.button("Next Day ➡️"):
+        st.session_state.current_day = min(st.session_state.current_day + 1, 30)
+        st.rerun()
+    if st.button("Reset Plan 🔄"):
+        st.session_state.current_day = 1
+        st.session_state.xp = 0
+        st.rerun()
 
-# --- UI PRINCIPAL ---
-st.title("🛡️ Executive English Mastery - The Omnibus Edition")
-st.write("Estrategia Táctica 360° para Líderes de Operaciones, Calidad y Tech.")
+# --- INTERFAZ PRINCIPAL ---
+st.title("🦅 Executive AI War Room v10.0")
+st.write("Tu ecosistema letal para el dominio del inglés técnico en 30 días.")
 
-tabs = st.tabs(["🚀 Training Lab", "🔥 The Forge (STAR)", "🛡️ Audit Defense", "📖 Encyclopedia"])
+tabs = st.tabs(["📅 Tactical Roadmap", "🤖 AI Combat Lab", "🔥 The Forge (STAR)", "📊 Analytics"])
 
-# --- TAB 1: TRAINING LAB ---
+# --- TAB 1: ROADMAP ---
 with tabs[0]:
-    st.subheader("⚔️ Power Verb Combat")
-    st.write("Entrena tus reflejos: sustituye inglés básico por inglés de alto impacto.")
-    if st.button("Get New Drill"):
-        st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
+    st.subheader("30-Day Execution Calendar")
+    cols = st.columns(7)
+    for i in range(1, 31):
+        with cols[(i-1)%7]:
+            status = ""
+            if i == st.session_state.current_day: status = "day-current"
+            elif i < st.session_state.current_day: status = "day-done"
+            
+            st.markdown(f"""
+                <div class="day-card {status}">
+                    <b>DAY {i}</b><br>
+                    <small>{THIRTY_DAY_PLAN.get(i, "Leadership Mastery")[:18]}...</small>
+                </div>
+            """, unsafe_allow_html=True)
     
-    if 'current_drill' in st.session_state:
-        drill = st.session_state.current_drill
-        st.markdown(f"<div class='executive-card'>Junior level says: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
-        user_ans = st.text_input("How does an Executive say it? (Type the phrase):")
-        if st.button("Neutralize!"):
-            if drill[1].lower() in user_ans.lower():
-                st.balloons()
-                st.success(f"🎯 CORRECT! +100 XP. La frase correcta es: '{drill[1]}'")
-                st.session_state.xp += 100
-                if st.session_state.xp >= 1000:
-                    st.session_state.level += 1
-                    st.session_state.xp = 0
-            else:
-                st.error(f"⚠️ Basic detected. El nivel directivo exige: '{drill[1]}'")
+    st.divider()
+    topic = THIRTY_DAY_PLAN.get(st.session_state.current_day, "Continuous Improvement")
+    st.markdown(f"""
+    <div class="executive-card">
+        <h3>Today's Mission: {topic}</h3>
+        <p>Your objective today is to master the vocabulary and strategic responses for <b>{topic}</b>.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# --- TAB 2: THE FORGE ---
+# --- TAB 2: AI COMBAT LAB ---
 with tabs[1]:
-    st.subheader("🏗️ Success Story Builder (STAR Method)")
-    st.write("Forja tus logros de Mercado Libre, Marelli o Hi-Cone en argumentos de nivel Director.")
-    c1, c2 = st.columns(2)
-    with c1:
-        sit = st.text_area("Situation:", placeholder="Ej: Crisis de quejas con Audi/VW por desviaciones en proceso")
-        task = st.text_area("Task:", placeholder="Ej: Cerrar 20 quejas críticas en 30 días para asegurar el contrato")
-        act = st.text_area("Action:", placeholder="Ej: SQL queries para identificar el lote, Root Cause Analysis con IA")
-        res = st.text_area("Result:", placeholder="Ej: $274k ahorrados auditados, 100% IRA mantenido")
-    with c2:
-        if st.button("✨ Forjar Argumento Directivo"):
-            st.session_state.forged_star = f"""
-            "During a critical period regarding {sit}, I was tasked with {task}. 
-            I spearheaded a recovery strategy leveraging {act} to streamline our response and ensure compliance. 
-            As a result, I successfully delivered {res}, directly impacting the EBITDA and securing our OEM standing."
-            """
-        if st.session_state.forged_star:
-            st.markdown(f"<div class='star-box'>{st.session_state.forged_star}</div>", unsafe_allow_html=True)
-            st.info("💡 Tip: Lee este párrafo en voz alta 10 veces frente al espejo para ganar fluidez.")
-
-# --- TAB 3: AUDIT DEFENSE ---
-with tabs[2]:
-    st.subheader("🛡️ Audit Resistance Simulator")
-    mod = st.selectbox("Select Intelligence Module:", list(COURSE_DATA.keys()))
-    questions = COURSE_DATA[mod]
+    st.subheader("High-Pressure AI Simulation")
+    st.write("La IA generará un desafío técnico aleatorio basado en tu nivel y el día actual.")
     
-    if st.session_state.q_idx < len(questions):
-        q = questions[st.session_state.q_idx]
-        st.write(f"### {q['q']}")
-        ans = st.radio("Choose your defense strategy:", q['opts'], key=f"audit_{mod}")
-        if st.button("Defend!"):
-            if q['opts'].index(ans) == q['ans']:
-                st.success("🎯 Auditor Satisfied. Level: COMPLIANT.")
+    if st.button("Generate Technical Challenge"):
+        with st.spinner("AI is crafting a scenario..."):
+            system_instruction = f"""You are a world-class Executive Recruiter for a Tier 1 Automotive company. 
+            Fernando is your candidate. He is a master in IATF, VDA 6.3, SQL, and Logistics.
+            Today is Day {st.session_state.current_day} focused on {topic}.
+            Generate a tough, technical interview question in English."""
+            st.session_state.challenge = call_ai("Ask me a difficult question.", system_instruction)
+    
+    if 'challenge' in st.session_state:
+        st.info(st.session_state.challenge)
+        response = st.text_area("Your Executive Response (English):", height=120)
+        if st.button("Submit Response"):
+            with st.spinner("Analyzing..."):
+                analysis_prompt = f"Analyze this response to the question: {st.session_state.challenge}. User response: {response}. Provide: 1. Score (0-100), 2. Correction of tone/grammar, 3. A 'Director-level' version of the same answer."
+                feedback = call_ai(analysis_prompt, "You are a CEO providing feedback.")
+                st.markdown(f"<div class='executive-card'><b>AI Feedback:</b><br>{feedback}</div>", unsafe_allow_html=True)
                 st.session_state.xp += 50
-            else:
-                st.error("❌ Finding detected. Too basic for this level.")
-                st.write(f"**Strategic Breakdown:** {q['exp']}")
-            time.sleep(2)
-            st.session_state.q_idx = (st.session_state.q_idx + 1) % len(questions)
-            st.rerun()
 
-# --- TAB 4: ENCYCLOPEDIA ---
+# --- TAB 3: THE FORGE ---
+with tabs[2]:
+    st.subheader("Success Story Forge (AI Powered)")
+    st.write("Ingresa tus logros en español o inglés básico y deja que la IA los convierta en argumentos letales.")
+    raw_achievement = st.text_area("Achievement (Draft):", placeholder="Ej: Ahorré mucho dinero en empaque usando SQL...")
+    
+    if st.button("Forge to Director Level"):
+        with st.spinner("Refining..."):
+            forge_prompt = "Convert this draft into a powerful, executive-level STAR method paragraph using professional verbs like 'spearheaded', 'orchestrated', 'leveraged', and mention EBITDA/Hard Savings."
+            result = call_ai(raw_achievement, forge_prompt)
+            st.markdown(f"<div class='executive-card'><b>Forged Result:</b><br>{result}</div>", unsafe_allow_html=True)
+
+# --- TAB 4: ANALYTICS ---
 with tabs[3]:
-    st.subheader("📖 The Omnibus Technical Encyclopedia")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown("<span class='badge badge-ops'>🏭 Ops & Quality</span>", unsafe_allow_html=True)
-        st.write("- **IATF 16949:** Automotive QMS Standard.")
-        st.write("- **VDA 6.3:** German Process Audit Standard.")
-        st.write("- **APQP/PPAP:** Core Launch Tools.")
-        st.write("- **Hard Savings:** Audited profit impact.")
-    with c2:
-        st.markdown("<span class='badge badge-tech'>🧬 Tech & Data</span>", unsafe_allow_html=True)
-        st.write("- **SQL Query:** Database command.")
-        st.write("- **BigQuery:** Data warehouse engine.")
-        st.write("- **Predictive Modeling:** Failure forecasting.")
-        st.write("- **LLM:** AI Engine (Prompting).")
-    with c3:
-        st.markdown("<span class='badge badge-compliance'>⚖️ Compliance</span>", unsafe_allow_html=True)
-        st.write("- **NOM:** Official Mexican Standards.")
-        st.write("- **ISO 9001:** Quality Governance.")
-        st.write("- **CSR:** Customer-Specific Requirements.")
+    st.subheader("Performance Tracker")
+    c1, c2 = st.columns(2)
+    c1.metric("Total XP Earned", st.session_state.xp)
+    c2.metric("Plan Progress", f"{int((st.session_state.current_day/30)*100)}%")
+    st.divider()
+    st.write("#### Skills Radar")
+    st.info("Top Performer in: IATF Compliance | SQL Data Extraction | EBITDA Strategy")
 
 st.divider()
-st.caption("Fernando Montes Delgado | Operations & Quality Mastery System | v9.0 Omnibus Edition")
+st.caption("Executive English War Room | v10.0 AI-Omnibus | Build by AI for Fernando Montes")
