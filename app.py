@@ -80,6 +80,7 @@ POWER_VERBS_DRILLS = [
 # --- FUNCIONES DE IA ---
 def call_ai(prompt, api_key):
     if not api_key: return "⚠️ Error: Falta la API Key en la configuración del servidor."
+    # Apuntando al nuevo servidor de última generación: gemini-3-flash-preview
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
@@ -154,23 +155,31 @@ if st.session_state.english_level == "No Evaluado":
 
     elif st.session_state.screen == 'placement_test':
         st.title("🎯 Examen de Colocación (AI Assessment)")
-        st.write("La IA ha generado un escenario basado en tu área. Responde en inglés con al menos 3 oraciones.")
+        st.write("La IA evaluará tu nivel actual para personalizar tu ruta. Responde con confianza, aquí no hay errores, solo puntos de partida.")
         
         if 'placement_q' not in st.session_state:
             with st.spinner("Generando escenario técnico..."):
-                prompt = f"You are a global recruiter. Ask ONE challenging interview question in English for a {st.session_state.user_area} engineer. Require them to explain a complex technical concept."
+                # --- PROMPT DE APRENDIZAJE ACELERADO (BAJO ESTRÉS) ---
+                prompt = f"You are an Elite Executive Coach of billionaires and top performers. Your goal is to assess a {st.session_state.user_area} engineer's English gently but effectively. Ask ONE engaging, conversational question about a recent success or a common challenge they face. Keep the vocabulary accessible (B1/B2) so they feel comfortable expressing themselves."
                 st.session_state.placement_q = call_ai(prompt, active_key)
                 st.rerun()
                 
-        st.markdown(f"<div class='executive-card'><b>Global Recruiter:</b><br><br><i>\"{st.session_state.placement_q}\"</i></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='executive-card'><b>Elite Coach:</b><br><br><i>\"{st.session_state.placement_q}\"</i></div>", unsafe_allow_html=True)
         ans = st.text_area("Tu Respuesta (En Inglés):", height=150)
         
-        if st.button("Auditar mi Nivel de Inglés 🚀"):
+        if st.button("Descubrir mi Nivel 🚀"):
             if len(ans) < 20:
-                st.warning("Respuesta muy corta. Escribe más detalle.")
+                st.warning("Escribe un poco más para poder darte un buen diagnóstico.")
             else:
-                with st.spinner("Analizando tu autoridad lingüística..."):
-                    eval_prompt = f"Analyze this english response from a {st.session_state.user_area} engineer. Question: {st.session_state.placement_q}. Answer: {ans}. Determine CEFR Level (A2, B1, B2, C1, C2). Format: NIVEL: [Level]\nANALISIS: [Explanation]"
+                with st.spinner("Analizando tus fortalezas lingüísticas..."):
+                    # --- EVALUACIÓN MOTIVADORA Y HACKS ---
+                    eval_prompt = f"""Analyze this English response from a {st.session_state.user_area} engineer. 
+                    Question: {st.session_state.placement_q}. Answer: {ans}. 
+                    Determine CEFR Level (A2, B1, B2, C1, C2). 
+                    Format in SPANISH strictly as follows:
+                    NIVEL: [CEFR Level]
+                    TUS FORTALEZAS: [1 sentence praising what they did well, building immense confidence]
+                    HACK DE APRENDIZAJE: [1 specific, actionable strategy used by polyglots/CEOs to fix their specific main mistake rapidly]"""
                     result = call_ai(eval_prompt, active_key)
                     st.session_state.placement_eval = result
                     
@@ -226,23 +235,31 @@ else:
         st.write(f"**Tema:** {current_mission['title']} ({current_mission['focus']})")
         
         if st.button("🎙️ Generar Escenario Ejecutivo"):
-            with st.spinner("La IA está adaptando el reto..."):
-                prompt = f"You are a CEO interviewing an engineer ({st.session_state.user_area}) with {st.session_state.english_level} English. Training topic: {current_mission['focus']}. Ask ONE tough scenario question in English."
+            with st.spinner("Tu mentor IA está preparando tu sesión..."):
+                # --- ESCENARIO DIARIO MENTORING ---
+                prompt = f"You are a highly inspiring Executive Mentor. Your mentee is a {st.session_state.user_area} engineer with {st.session_state.english_level} English. Today's focus is: {current_mission['focus']}. Present a realistic, engaging workplace scenario and ask them how they would handle it. Be encouraging but expect professionalism."
                 st.session_state.daily_q = call_ai(prompt, active_key)
                 
         if 'daily_q' in st.session_state:
-            st.markdown(f"<div class='executive-card'><b>C-Level Executive:</b><br><br>\"{st.session_state.daily_q}\"</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='executive-card'><b>Elite Mentor:</b><br><br>\"{st.session_state.daily_q}\"</div>", unsafe_allow_html=True)
             user_ans = st.text_area("Tu Respuesta (en Inglés):", height=150)
             
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("⚖️ Evaluar y Corregir"):
+                if st.button("⚖️ Recibir Feedback de Alto Rendimiento"):
                     if not user_ans: st.warning("Escribe una respuesta.")
                     else:
-                        with st.spinner("Auditando..."):
-                            eval_prompt = f"Evaluate this answer from a {st.session_state.user_area} engineer. Question: '{st.session_state.daily_q}'. Answer: '{user_ans}'. Provide in SPANISH: 1. Score (0-100), 2. Feedback, 3. The PERFECT Director-level script in English."
+                        with st.spinner("Generando retroalimentación acelerada..."):
+                            # --- FEEDBACK POSITIVO Y ESTRATEGIA 80/20 ---
+                            eval_prompt = f"""Evaluate this answer from your mentee (a {st.session_state.user_area} engineer). 
+                            Question: '{st.session_state.daily_q}'. Answer: '{user_ans}'. 
+                            Provide in SPANISH: 
+                            1. ENERGÍA Y CLARIDAD (0-100%): [Score based on confidence and clarity, not perfect grammar]
+                            2. LO QUE HICISTE EXCELENTE: [Praise their communication]
+                            3. EL AJUSTE DEL 1%: [One single high-impact correction (80/20 rule)]
+                            4. LA VERSIÓN 'BOARDROOM': [The exact, polished script a top Executive would use. Tell them to practice reading this aloud]."""
                             feedback = call_ai(eval_prompt, active_key)
-                            st.markdown(f"<div class='level-box'><b>Reporte Táctico:</b><br>{feedback}</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div class='level-box'><b>Insights de tu Mentor:</b><br>{feedback}</div>", unsafe_allow_html=True)
                             st.session_state.xp += 100
             with col2:
                 if st.button("🔥 Completar Misión Diaria"):
@@ -310,4 +327,3 @@ else:
             st.write("- **S&OP:** Sales and Operations Planning.")
             st.write("- **NOM:** Normas Oficiales Mexicanas.")
             st.write("- **Countermeasure:** Acción de contención inmediata.")
-
