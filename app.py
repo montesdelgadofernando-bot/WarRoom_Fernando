@@ -832,4 +832,5 @@ elif st.session_state.screen == 'dashboard':
                 st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
 
 st.divider()
-st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Adquisición Natural C-Level | Edición 2026")
+st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | QMS 4.0 | LSS + IA | UX/UI | Adquisición Natural C-Level | Edición 2026")
+
