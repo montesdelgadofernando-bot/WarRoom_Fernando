@@ -113,7 +113,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- COMPONENTES MULTIMEDIA ---
+# --- COMPONENTES MULTIMEDIA (MICRÓFONO Y ALTAVOZ) ---
 def st_speech_to_text(key):
     script = """
     <script>
@@ -235,8 +235,8 @@ def generate_90_day_plan():
             <p style="font-size:0.9em; color:#cbd5e1; margin-bottom:15px;">Completa todas las estaciones para asegurar inmersión total diaria.</p>
             <ul style="list-style-type: none; padding: 0;">
                 <li style="margin-bottom:10px;"><b>1️⃣ Inmersión Activa (10 min):</b> Busca en YouTube un video sobre <i>{video_topic}</i>. Pausa cada minuto e intenta entender contexto.</li>
-                <li style="margin-bottom:10px;"><b>2️⃣ Shadowing (10 min):</b> Ve a la pestaña, escucha y repite frases esenciales para mejorar fonética.</li>
-                <li style="margin-bottom:10px;"><b>3️⃣ AI Combat Lab (10 min):</b> Pide sugerencias de vocabulario y responde la crisis de <i>{temp[0]}</i>.</li>
+                <li style="margin-bottom:10px;"><b>2️⃣ Shadowing (10 min):</b> Ve a la pestaña, escucha y repite frases esenciales usando el micrófono para mejorar fonética.</li>
+                <li style="margin-bottom:10px;"><b>3️⃣ AI Combat Lab (10 min):</b> Usa el micrófono para responder la crisis de <i>{temp[0]}</i> a la Inteligencia Artificial.</li>
                 <li style="margin-bottom:10px;"><b>4️⃣ Reflejos y Conectores (10 min):</b> Supera 3 frases en Verbos y 3 en Conectores.</li>
                 <li style="margin-bottom:0;"><b>5️⃣ La Fragua (5 min):</b> Redacta tu <i>{temp[2]}</i> y fórjalo a nivel VP.</li>
             </ul>
@@ -419,9 +419,12 @@ elif st.session_state.screen == 'placement_test':
                 st.session_state.dynamic_scenarios = res.split('---')
 
         current_scenario = st.session_state.dynamic_scenarios[ai_step] if ai_step < len(st.session_state.dynamic_scenarios) else "Explain a major process failure and your leadership containment action."
-        st.markdown(f"<div class='executive-card'><b>Situación Crítica (Responde con Autoridad):</b><br>{current_scenario}</div>", unsafe_allow_html=True)
-        ans = st.text_area("Tu Respuesta en Inglés:")
-        st_speech_to_text(key=f"voice_{ai_step}")
+        st.markdown(f"<div class='executive-card'><b>Situación Crítica (Usa el Micrófono para responder):</b><br>{current_scenario}</div>", unsafe_allow_html=True)
+        
+        # MICRÓFONO INCORPORADO AQUÍ
+        ans = st.text_area("Tu Respuesta en Inglés (Puedes dictarla haciendo clic en el micrófono de abajo):")
+        st_speech_to_text(key=f"voice_placement_{ai_step}")
+        
         if st.button("Validar Respuesta"):
             if len(ans) > 20:
                 st.session_state.placement_ai_responses.append(ans)
@@ -497,27 +500,37 @@ elif st.session_state.screen == 'dashboard':
     st.title(f"🛡️ War Room: {st.session_state.user_name}")
     tabs = st.tabs(["📅 Plan 90 Días", "🎧 Shadowing", "📖 Enciclopedia", "🤖 Combat Lab", "⚔️ Verbos", "🔗 Conectores", "🔥 Fragua"])
     
-    # 1. ROADMAP (90 DÍAS / CIRCUITO 50 MIN)
+    # 1. ROADMAP (90 DÍAS DIVIDIDO EN 3 MESES)
     with tabs[0]:
         st.subheader("Tu Calendario Táctico (Circuito 50 Min)")
-        st.info("💡 **Instrucciones:** Selecciona el día actual. Completa el circuito rotando por las pestañas. El objetivo de los 90 días es saltar un nivel (ej. B1 a C1).")
+        st.info("💡 **Instrucciones:** Selecciona el mes actual para ver tus misiones. Completa el circuito de 50 minutos diarios para saltar un nivel (ej. B1 a C1) en 90 días.")
         
         st.markdown(f"""
         <div style="background-color: #064e3b; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981; margin-bottom: 20px;">
             <h4 style="margin-top:0; color:#ecfdf5;">📱 Vocabulario Offline de Hoy (Día {st.session_state.selected_roadmap_day})</h4>
-            <p style="margin-bottom:0; color:#d1fae5; font-size:0.9em;">Anota estas palabras y oblígate a usarlas en tu próximo correo:</p>
+            <p style="margin-bottom:0; color:#d1fae5; font-size:0.9em;">Anota estas palabras y oblígate a usarlas en tu próximo correo o junta:</p>
             <b style="color:white; font-size:1.1em;">{DAILY_VOCAB[st.session_state.selected_roadmap_day % len(DAILY_VOCAB)]}</b> | 
             <b style="color:white; font-size:1.1em;">{DAILY_VOCAB[(st.session_state.selected_roadmap_day+1) % len(DAILY_VOCAB)]}</b>
         </div>
         """, unsafe_allow_html=True)
         
-        cols = st.columns(10)
-        for i in range(1, 91):
-            with cols[(i-1) % 10]:
-                btn_type = "primary" if st.session_state.selected_roadmap_day == i else "secondary"
-                if st.button(f"D{i}", key=f"grid_{i}", type=btn_type, use_container_width=True):
-                    st.session_state.selected_roadmap_day = i; st.rerun()
+        # DIVISIÓN VISUAL EN 3 MESES (30 Días cada uno)
+        meses_tabs = st.tabs(["📅 Mes 1 (Días 1-30)", "📅 Mes 2 (Días 31-60)", "📅 Mes 3 (Días 61-90)"])
         
+        for mes_idx, mes_tab in enumerate(meses_tabs):
+            with mes_tab:
+                start_day = (mes_idx * 30) + 1
+                end_day = start_day + 30
+                
+                cols = st.columns(10)
+                for i in range(start_day, end_day):
+                    with cols[(i - start_day) % 10]:
+                        btn_type = "primary" if st.session_state.selected_roadmap_day == i else "secondary"
+                        if st.button(f"D{i}", key=f"grid_btn_{i}", type=btn_type, use_container_width=True):
+                            st.session_state.selected_roadmap_day = i
+                            st.rerun()
+
+        # Detalle de la misión siempre visible abajo
         selected_data = NINETY_DAY_PLAN[st.session_state.selected_roadmap_day]
         st.markdown(f"""
             <div class="mission-card">
@@ -530,7 +543,7 @@ elif st.session_state.screen == 'dashboard':
             </div>
         """, unsafe_allow_html=True)
 
-        if st.button("✅ Terminé mi Circuito de 50 Minutos (Avanzar)"):
+        if st.button("✅ Terminé mi Circuito de 50 Minutos (Avanzar de Día)"):
             st.session_state.xp += 800
             st.session_state.current_day = min(90, st.session_state.selected_roadmap_day + 1)
             st.session_state.selected_roadmap_day = st.session_state.current_day
@@ -538,10 +551,10 @@ elif st.session_state.screen == 'dashboard':
             st.success("¡Circuito completado con éxito! Fluidez adquirida y guardada en la nube.")
             time.sleep(1.5); st.rerun()
 
-    # 2. SHADOWING (ENTRENAMIENTO AUDITIVO)
+    # 2. SHADOWING (ENTRENAMIENTO AUDITIVO CON MICRÓFONO)
     with tabs[1]:
         st.subheader("🎧 Entrenamiento Auditivo (Shadowing)")
-        st.info("💡 **El Método:** Lee la frase, presiona el botón para escuchar la pronunciación nativa, e inmediatamente repítela en voz alta intentando copiar la entonación exacta. Esto forja memoria muscular verbal.")
+        st.info("💡 **El Método:** 1. Presiona 'Escuchar'. 2. Escucha la pronunciación nativa. 3. Usa el micrófono de abajo para repetir la frase en voz alta y comprobar tu fluidez.")
         
         phrases_to_shadow = [
             "Furthermore, we must deploy immediate containment actions.",
@@ -551,8 +564,13 @@ elif st.session_state.screen == 'dashboard':
         
         for idx, phrase in enumerate(phrases_to_shadow):
             st.markdown(f"<div class='executive-card' style='padding:20px; margin-bottom:10px;'><h3 style='color:white; margin:0;'>\"{phrase}\"</h3></div>", unsafe_allow_html=True)
-            if st.button("🔊 Escuchar y Repetir", key=f"shadow_{idx}"):
-                st_text_to_speech(phrase)
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                if st.button("🔊 Escuchar Pronunciación", key=f"shadow_play_{idx}"):
+                    st_text_to_speech(phrase)
+            with col2:
+                # MICRÓFONO AGREGADO AL SHADOWING
+                st_speech_to_text(key=f"shadow_mic_{idx}")
 
     # 3. ENCICLOPEDIA VP
     with tabs[2]:
@@ -579,11 +597,11 @@ elif st.session_state.screen == 'dashboard':
             if st.button("Limpiar Búsqueda"):
                 st.session_state.encyclopedia_result = None; st.rerun()
 
-    # 4. AI COMBAT LAB
+    # 4. AI COMBAT LAB (CON MICRÓFONO)
     with tabs[3]:
         mission = NINETY_DAY_PLAN[st.session_state.selected_roadmap_day]
         st.subheader(f"Combat Lab: {mission['title']}")
-        st.info("💡 **Instrucciones:** Pídele al Asistente sugerencias de conectores ANTES de contestarle al CEO. Tu respuesta debe mostrar impacto.")
+        st.info("💡 **Instrucciones:** Pídele al Asistente sugerencias de conectores ANTES de contestarle al CEO. Utiliza el micrófono para responder oralmente como en una junta real.")
         
         if st.button("🎙️ Solicitar Pregunta del CEO"):
             with st.spinner("CEO conectándose..."):
@@ -601,8 +619,10 @@ elif st.session_state.screen == 'dashboard':
                 if st.session_state.assistant_suggestions.get('combat'):
                     st.markdown(f"<div class='eval-box'>{st.session_state.assistant_suggestions['combat']}</div>", unsafe_allow_html=True)
             
-            ans = st.text_area("Tu Respuesta Ejecutiva (Únelo con conectores):")
-            st_speech_to_text(key="combat_voice")
+            # MICRÓFONO FUNCIONANDO AQUÍ
+            ans = st.text_area("Tu Respuesta Ejecutiva (Únelo con conectores y puedes usar el micrófono):")
+            st_speech_to_text(key="combat_voice_lab")
+            
             if st.button("Auditar Respuesta"):
                 with st.spinner("Auditando fluidez..."):
                     res = call_ai(f"Evaluate: {ans}. SPANISH. 1. SCORE 2. FEEDBACK (Enfocado en impacto y uso de conectores) 3. VERSIÓN BOARDROOM.", API_KEY)
@@ -645,4 +665,4 @@ elif st.session_state.screen == 'dashboard':
                 st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
 
 st.divider()
-st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Adquisición Natural C-Level | Edición 2025")
+st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Adquisición Natural C-Level | Edición 2026")
