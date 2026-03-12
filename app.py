@@ -2,13 +2,16 @@ import streamlit as st
 import requests
 import time
 import random
+import json
 import streamlit.components.v1 as components
 
-# --- IMPORTACIÓN SEGURA DE FIRESTORE ---
+# --- IMPORTACIÓN SEGURA DE FIRESTORE Y CREDENCIALES ---
 try:
     from google.cloud import firestore
+    from google.oauth2 import service_account
 except ImportError:
     firestore = None
+    service_account = None
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
@@ -22,11 +25,25 @@ st.set_page_config(
 app_id = getattr(st.secrets, "__app_id", "war-room-executive-fernando")
 
 def get_db():
-    try:
-        if firestore:
-            return firestore.Client()
+    # RADAR DE DIAGNÓSTICO
+    if firestore is None:
+        st.sidebar.error("❌ DEBUG: La librería 'google-cloud-firestore' no está instalada o no cargó. Revisa tu requirements.txt")
         return None
-    except Exception:
+        
+    if "FIREBASE_KEY" not in st.secrets:
+        st.sidebar.error("❌ DEBUG: No se detectó 'FIREBASE_KEY' en la bóveda de Secrets de Streamlit.")
+        return None
+        
+    try:
+        raw_key = st.secrets["FIREBASE_KEY"]
+        key_dict = json.loads(raw_key, strict=False)
+        creds = service_account.Credentials.from_service_account_info(key_dict)
+        return firestore.Client(credentials=creds, project=key_dict["project_id"])
+    except json.JSONDecodeError as e:
+        st.sidebar.error(f"❌ DEBUG JSON: Hay un error de formato, una coma o una llave extra en tu texto de Secrets. Detalle: {e}")
+        return None
+    except Exception as e:
+        st.sidebar.error(f"❌ DEBUG FIREBASE: Error de conexión: {e}")
         return None
 
 db = get_db()
@@ -127,7 +144,7 @@ try:
 except: 
     API_KEY = ""
 
-# --- BANCOS DE PREGUNTAS (100% COMPLETOS Y RESTAURADOS PARA 12 ETAPAS MCQ) ---
+# --- BANCOS DE PREGUNTAS (100% COMPLETOS) ---
 DYNAMIC_MCQ = {
     "Operaciones & Supply Chain": [
         {"q": "What is 'Lead Time'?", "options": ["Production speed", "Total time from order to delivery", "Machine uptime", "The boss's schedule"], "ans": 1},
@@ -262,10 +279,9 @@ POWER_VERBS_DRILLS = [
     ("I talked to the client", "I orchestrated cross-functional negotiations")
 ]
 
-# --- MOTOR DE IA (GEMINI 3 FLASH PREVIEW) ---
+# --- MOTOR DE IA ---
 def call_ai(prompt, api_key):
     if not api_key: return "⚠️ Error: Falta la API Key en la configuración."
-    # Restaurado al modelo padrino según lo solicitado
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
@@ -306,17 +322,13 @@ with st.sidebar:
         st.rerun()
 
 # --- FLUJO PRINCIPAL ---
-
 if not st.session_state.get("placement_completed"):
-    # 1. INGRESO (PERSISTENTE Y LIMPIO)
     if st.session_state.screen == 'home':
         st.markdown("<div class='hero-box'><h1>Executive Mastery Protocol</h1><p>Ingresa tu nombre y especialidad. Tu progreso se sincronizará automáticamente en la nube.</p></div>", unsafe_allow_html=True)
-        
         col1, _ = st.columns([1, 1])
         with col1:
             name_input = st.text_input("Ingresa tu Nombre Completo:")
             area_input = st.selectbox("Selecciona tu Especialidad Táctica:", list(DYNAMIC_MCQ.keys()))
-            
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Acceder al Sistema 🧠"):
                 if name_input:
@@ -333,10 +345,9 @@ if not st.session_state.get("placement_completed"):
                 else:
                     st.warning("Por favor, ingresa tu nombre para continuar.")
 
-    # 2. EXAMEN (12 MCQ + 4 AI = 16 ETAPAS)
     elif st.session_state.screen == 'placement_test':
         questions = DYNAMIC_MCQ.get(st.session_state.user_area, DYNAMIC_MCQ["Otra"])
-        total_mcq = len(questions) # Esto es 12
+        total_mcq = len(questions)
         total_ai = 4
         total_steps = total_mcq + total_ai
         current_step = st.session_state.placement_step
@@ -392,13 +403,12 @@ if not st.session_state.get("placement_completed"):
             st.rerun()
 
     elif st.session_state.screen == 'results':
-        st.markdown(f"<div class='level-box'><h1>{st.session_state.english_level}</h1><p>Auditoría Finalizada (16/16 Etapas)</p></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='level-box'><h1>{st.session_state.english_level}</h1><p>Auditoría Finalizada</p></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='executive-card'><p style='white-space: pre-wrap;'>{st.session_state.placement_eval_detailed}</p></div>", unsafe_allow_html=True)
         if st.button("Desbloquear War Room ⚔️"):
             st.session_state.screen = 'dashboard'
             st.rerun()
 
-# 3. WAR ROOM (PERSISTENTE)
 else:
     st.title(f"🛡️ War Room: {st.session_state.user_name}")
     tabs = st.tabs(["📅 Roadmap 30 Días", "🤖 AI Combat Lab", "⚔️ Power Verbs", "🔥 The Forge", "📖 Enciclopedia"])
@@ -416,7 +426,6 @@ else:
             """, unsafe_allow_html=True)
 
     with tabs[1]:
-        # Encontrar la misión actual basada en el día
         mission = next((p for p in THIRTY_DAY_PLAN if p['day'] == st.session_state.current_day), THIRTY_DAY_PLAN[-1])
         st.subheader(f"Misión Diaria: {mission['title']}")
         if st.button("🎙️ Generar Escenario con el Mentor"):
@@ -430,14 +439,9 @@ else:
             st_speech_to_text(key="combat_voice")
             if st.button("Auditar con Feedback y Pro Tips"):
                 with st.spinner("Auditando..."):
-                    prompt = f"""Evaluate: {ans}. 
-                    Provide in SPANISH:
-                    1. SCORE (0-100)
-                    2. FEEDBACK TÉCNICO: Errores gramaticales o de autoridad.
-                    3. TIP PRO: Un consejo VP para mejorar.
-                    4. VERSIÓN BOARDROOM: Script perfecto en inglés."""
+                    prompt = f"""Evaluate: {ans}. Provide in SPANISH: 1. SCORE (0-100) 2. FEEDBACK TÉCNICO 3. TIP PRO 4. VERSIÓN BOARDROOM."""
                     res = call_ai(prompt, API_KEY)
-                    st.markdown(f"<div class='level-box' style='background-color: #1e293b; border-left-color: #f59e0b;'>{res}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='level-box'>{res}</div>", unsafe_allow_html=True)
                     st.session_state.xp += 100
                     save_user_progress()
 
@@ -451,14 +455,12 @@ else:
             if drill[1].lower() in pv_ans.lower():
                 st.success("¡Excelente! Has neutralizado la frase básica.")
                 st.session_state.xp += 50
-                st.info(f"💡 **TIP PRO:** '{drill[1].split()[1]}' es un verbo de acción que implica liderazgo.")
                 time.sleep(2)
                 st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
                 save_user_progress()
                 st.rerun()
             else:
                 st.error(f"Sigue siendo básico. La frase letal es: '{drill[1]}'")
-                st.caption("💡 **TIP PRO:** Usa verbos que demuestren un proceso o una estrategia, como 'rectified' o 'orchestrated'.")
 
     with tabs[3]:
         st.subheader("La Fragua: Forja de Logros")
@@ -466,27 +468,18 @@ else:
         if st.button("⚒️ Forjar Logro VP"):
             with st.spinner("Forjando..."):
                 res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA with a Pro Tip in Spanish: {draft}", API_KEY)
-                st.markdown(f"<div class='executive-card'><b>Resultado VP:</b><br>{res}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
                 save_user_progress()
 
     with tabs[4]:
         st.subheader("Enciclopedia Técnica")
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown("<span class='badge-ops'>🏭 Ops & Supply</span>", unsafe_allow_html=True)
-            st.write("- **EBITDA:** Beneficio operativo antes de intereses, impuestos, depreciación y amortización.")
-            st.write("- **Hard Savings:** Ahorros duros que impactan directamente el estado de resultados.")
-            st.write("- **S&OP:** Sales and Operations Planning. Alineación de demanda y suministro.")
+            st.write("🏭 **Ops & Supply:** EBITDA, Hard Savings, S&OP.")
         with c2:
-            st.markdown("<span class='badge-tech'>🧬 Tech & Data</span>", unsafe_allow_html=True)
-            st.write("- **SQL Query:** Consulta estructurada a bases de datos.")
-            st.write("- **BigQuery:** Data Warehouse empresarial de Google.")
-            st.write("- **IRA:** Inventory Record Accuracy. Precisión de inventario.")
+            st.write("🧬 **Tech & Data:** SQL Query, BigQuery, IRA.")
         with c3:
-            st.markdown("<span class='badge-compliance'>⚖️ Quality</span>", unsafe_allow_html=True)
-            st.write("- **IATF 16949:** Sistema de Gestión de Calidad Automotriz global.")
-            st.write("- **Cpk:** Índice de capacidad del proceso a largo plazo.")
-            st.write("- **RCA:** Root Cause Analysis (Análisis de Causa Raíz).")
+            st.write("⚖️ **Quality:** IATF 16949, Cpk, RCA.")
 
 st.divider()
-st.caption("Protocolo Diseñado por Ing. Fernando Montes Delgado | Cloud Persistence & Full Knowledge Base Enabled | Gemini 3 Flash Preview")
+st.caption("Protocolo Diseñado por Ing. Fernando Montes Delgado | Quality & Operational Excellence | QMS 4.0 | Lean + AI")
