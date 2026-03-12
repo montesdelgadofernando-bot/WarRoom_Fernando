@@ -93,16 +93,15 @@ st.markdown("""
     .executive-card {
         background-color: #1e293b; padding: 30px; border-radius: 15px; border-left: 6px solid #3b82f6; margin-bottom: 20px;
     }
+    .mission-card {
+        background-color: #0f172a; padding: 25px; border-radius: 15px; border: 1px solid #334155; margin-top: 20px;
+    }
     .level-box {
         background-color: #064e3b; padding: 30px; border-radius: 15px; border-left: 6px solid #10b981; color: #ecfdf5; text-align: left;
     }
     .eval-box {
         background-color: #1e293b; padding: 25px; border-radius: 12px; border-left: 5px solid #f59e0b; margin-bottom: 15px;
     }
-    .day-card {
-        background-color: #1e293b; padding: 20px; border-radius: 15px; border: 2px solid #334155; margin-bottom: 15px;
-    }
-    .day-active { border-color: #f59e0b; background-color: #451a03; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
     .diff-badge { padding: 4px 10px; border-radius: 5px; font-size: 0.8em; font-weight: bold; }
     .diff-facil { background-color: #064e3b; color: #34d399; }
     .diff-media { background-color: #78350f; color: #fbbf24; }
@@ -211,21 +210,78 @@ DYNAMIC_MCQ = {
         ]
     }
 }
-# Llenado automático (Fallback) de especialidades faltantes para evitar errores
 for area in ["Ingeniería de Producto", "Data Science & SQL", "Logística", "Producción", "Otra"]:
     if area not in DYNAMIC_MCQ:
         DYNAMIC_MCQ[area] = copy.deepcopy(DYNAMIC_MCQ["Operaciones & Supply Chain"])
 
-# --- KNOWLEDGE BASE (¡RESTAURADA AL 100%!) ---
-THIRTY_DAY_PLAN = [
-    {"day": 1, "phase": "Cimientos", "title": "El Pitch de Impacto (EBITDA)", "focus": "Cómo presentar tu valor financiero y ahorros duros."},
-    {"day": 2, "phase": "Defensa", "title": "Auditorías Globales", "focus": "Contención, RCA, IATF 16949 y VDA 6.3."},
-    {"day": 3, "phase": "Sistemas", "title": "Cultura Cero Defectos", "focus": "Métricas de Calidad, FMEA y Risk-based thinking."},
-    {"day": 4, "phase": "Tech Ops", "title": "Data Storytelling", "focus": "Explicar SQL, BigQuery y extracción de datos a Directivos."},
-    {"day": 5, "phase": "Escala", "title": "S&OP & Logística", "focus": "Inventory Record Accuracy (IRA) y Supply Chain."},
-    {"day": 6, "phase": "Futuro", "title": "Inteligencia Artificial", "focus": "Prompt Engineering y Modelos Predictivos en piso."},
-    {"day": 7, "phase": "Boardroom", "title": "Prueba de Fuego (CEO)", "focus": "Estructuras ejecutivas bajo presión extrema."}
-]
+# --- GENERADOR DE PLAN 30 DÍAS INTERACTIVO ---
+def generate_30_day_plan():
+    plan = {}
+    phases = ["Fundamentos (Día 1-5)", "Dominio Técnico (Día 6-15)", "Gestión de Crisis (Día 16-22)", "Liderazgo (Día 23-28)", "Boardroom (Día 29-30)"]
+    
+    # Textos ricos para poblar el calendario
+    templates = [
+        ("El Pitch de Impacto", "Crear una presentación personal de 3 líneas enfocada en EBITDA.", "Audio grabado de tu pitch sin dudar.", "No uses 'help', usa 'Spearhead' o 'Orchestrate'.", "1. Escribe el pitch. 2. Identifica el ahorro. 3. Graba 10 veces."),
+        ("Contención 8D", "Redactar un correo de respuesta a un problema de calidad.", "Email de 5 líneas con acciones de contención.", "Usa la estructura: Issue -> Containment -> RCA Plan.", "1. Imagina un defecto. 2. Usa 'Deployed containment'. 3. Revisa gramática."),
+        ("Métricas de OEE", "Explicar el OEE de tu línea de producción a un directivo.", "Párrafo explicando la disponibilidad, rendimiento y calidad.", "Evita 'machine stopped', usa 'experienced downtime'.", "1. Calcula un OEE falso. 2. Justifica la pérdida mayor. 3. Propón solución."),
+        ("El Stakeholder Difícil", "Rebatir a alguien que quiere cambiar el alcance del proyecto.", "Guión de respuesta educada pero firme.", "Usa 'impact assessment' antes de decir que no.", "1. Escucha la petición. 2. Pide tiempo para análisis de impacto. 3. Muestra el costo."),
+        ("Negociación de Proveedor", "Exigir a un proveedor que reduzca su Lead Time.", "Script de llamada (3 minutos).", "No pidas 'por favor', exige 'strategic alignment'.", "1. Revisa el contrato. 2. Plantea el impacto en tu EBITDA. 3. Da un ultimátum ejecutivo."),
+        ("Data Storytelling", "Explicar cómo sacaste datos de un SQL o Dashboard.", "Explicación de 1 minuto frente al espejo.", "Usa 'Leveraged data' en lugar de 'looked at Excel'.", "1. Define la base de datos. 2. Explica la tendencia. 3. Da la conclusión de negocio."),
+        ("Defensa de CAPEX", "Justificar la compra de una máquina de $100k USD.", "One-pager (1 hoja) con ROI y Payback.", "Enfócate en la mitigación de riesgos y ahorros duros.", "1. Calcula el ROI. 2. Escribe el riesgo de no comprarla. 3. Haz el cierre fuerte.")
+    ]
+    
+    for day in range(1, 31):
+        phase_idx = min((day - 1) // 6, 4) 
+        temp = templates[day % len(templates)]
+        
+        # Días especiales (Hitos)
+        if day == 1: temp = ("El Pitch de Impacto (EBITDA)", "Redactar tu valor financiero.", "Audio grabado del pitch.", "Prohibido usar 'help'. Usa 'Orchestrate'.", "1. Escribe 3 líneas. 2. Traduce métricas. 3. Graba.")
+        if day == 15: temp = ("Auditoría Global (Mid-Term)", "Simular respuesta a un auditor VDA 6.3/IATF.", "Reporte 8D resumido en inglés.", "Menciona 'Risk-based thinking'.", "1. Identifica hallazgo. 2. Define contención. 3. Causa Raíz.")
+        if day == 30: temp = ("La Prueba de Fuego (CEO)", "Responder cómo reducirás 20% el OPEX sin afectar calidad.", "Video de 3 minutos sin cortes.", "Usa estructura de 3 puntos (First, Second, Ultimately).", "1. Vístete profesional. 2. Activa la cámara. 3. Vende tu estrategia.")
+
+        plan[day] = {
+            "phase": phases[phase_idx],
+            "title": temp[0],
+            "actividad": temp[1],
+            "entregable": temp[2],
+            "tips": temp[3],
+            "plan": temp[4]
+        }
+    return plan
+
+THIRTY_DAY_PLAN = generate_30_day_plan()
+
+# --- ENCICLOPEDIA TÉCNICA INTERACTIVA ---
+ENCYCLOPEDIA = {
+    "Operaciones & Supply Chain": {
+        "EBITDA": {"desc": "Beneficio antes de intereses, impuestos, depreciación y amortización.", "uso": "This strategic initiative protected our EBITDA margins by 12%."},
+        "S&OP": {"desc": "Sales and Operations Planning. Alineación mensual de demanda y capacidad.", "uso": "We re-baselined the S&OP to mitigate forecast variance and reduce stockouts."},
+        "Throughput": {"desc": "Tasa real de producción o flujo de trabajo del sistema.", "uso": "We maximized throughput while maintaining rigorous zero-defect standards."},
+        "Lead Time": {"desc": "Tiempo total desde la orden del cliente hasta la entrega.", "uso": "We negotiated a 15% lead-time reduction to accelerate time-to-market."},
+        "Bottleneck": {"desc": "Restricción que dicta la capacidad máxima de todo el sistema.", "uso": "I orchestrated a Takt-time analysis to eliminate the primary bottleneck."}
+    },
+    "Calidad & Lean Manufacturing": {
+        "RCA (Root Cause Analysis)": {"desc": "Metodología para identificar el origen sistemático de un problema.", "uso": "I spearheaded a data-driven RCA to deploy permanent countermeasures."},
+        "Cpk (Process Capability)": {"desc": "Índice que mide qué tan centrado y estable está un proceso.", "uso": "We stabilized the process parameters, raising the Cpk from 0.8 to 1.67."},
+        "Containment": {"desc": "Acción inmediata para proteger al cliente de un defecto (Sort/Rework).", "uso": "Immediate containment actions were deployed to quarantine the suspect lots."},
+        "Poka-Yoke": {"desc": "Mecanismo a prueba de errores integrado en el proceso.", "uso": "We implemented robust error-proofing countermeasures to eliminate human error."},
+        "Scrap": {"desc": "Material desechado por no cumplir con especificaciones.", "uso": "The Lean initiative delivered a 30% reduction in scrap, generating hard savings."}
+    },
+    "Project Management & Data": {
+        "Scope Creep": {"desc": "Aumento descontrolado del alcance original de un proyecto.", "uso": "We implemented a strict change-control board to prevent scope creep."},
+        "Agile / Scrum": {"desc": "Metodología iterativa para entrega rápida de valor.", "uso": "We transitioned to an Agile framework, improving cross-functional collaboration."},
+        "SQL / BigQuery": {"desc": "Lenguajes y herramientas para extracción y análisis masivo de datos.", "uso": "I leveraged BigQuery analytics to extract actionable insights from raw data."},
+        "Stakeholder": {"desc": "Cualquier persona afectada o con interés en el proyecto.", "uso": "I orchestrated a workshop to ensure complete stakeholder alignment."},
+        "ROI (Return on Investment)": {"desc": "Retorno de inversión de un proyecto o maquinaria.", "uso": "The projected ROI for this CAPEX request is under 14 months."}
+    },
+    "Power Verbs (Verbos de Poder)": {
+        "Spearhead": {"desc": "Liderar una iniciativa o proyecto importante.", "uso": "I spearheaded the automation project across three facilities."},
+        "Orchestrate": {"desc": "Coordinar múltiples partes para lograr un objetivo complejo.", "uso": "I orchestrated the multi-modal logistics strategy."},
+        "Leverage": {"desc": "Utilizar algo al máximo para obtener una ventaja.", "uso": "We leveraged historical data to improve predictive modeling."},
+        "Mitigate": {"desc": "Reducir la severidad o el riesgo de un problema.", "uso": "We developed a contingency plan to mitigate supply chain disruptions."},
+        "Rectify": {"desc": "Corregir un error sistemático o falla grave.", "uso": "The non-conformance was immediately rectified via a software patch."}
+    }
+}
 
 POWER_VERBS_DRILLS = [
     ("I fixed the problem", "I rectified the non-conformance"),
@@ -237,7 +293,7 @@ POWER_VERBS_DRILLS = [
 
 # --- MOTOR DE IA (GEMINI 3 FLASH PREVIEW) ---
 def call_ai(prompt, api_key):
-    if not api_key: return "⚠️ Error: Falta la API Key en la configuración."
+    if not api_key: return "⚠️ Error: Falta la API Key."
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
@@ -259,11 +315,12 @@ if 'placement_score' not in st.session_state: st.session_state.placement_score =
 if 'placement_ai_responses' not in st.session_state: st.session_state.placement_ai_responses = []
 if 'dynamic_scenarios' not in st.session_state: st.session_state.dynamic_scenarios = []
 
-# Variables para algoritmo adaptativo
+# Variables para algoritmo adaptativo y UI Interactivas
 if 'current_diff' not in st.session_state: st.session_state.current_diff = "media"
 if 'used_q_texts' not in st.session_state: st.session_state.used_q_texts = []
 if 'current_q' not in st.session_state: st.session_state.current_q = None
 if 'current_drill' not in st.session_state: st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
+if 'selected_roadmap_day' not in st.session_state: st.session_state.selected_roadmap_day = 1
 
 # --- PANEL LATERAL ---
 with st.sidebar:
@@ -284,7 +341,6 @@ with st.sidebar:
 def get_adaptive_question(area, diff):
     pool = DYNAMIC_MCQ.get(area, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(diff, [])
     available = [q for q in pool if q['q'] not in st.session_state.used_q_texts]
-    
     if not available:
         for fallback in ["media", "facil", "dificil"]:
             pool = DYNAMIC_MCQ.get(area, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(fallback, [])
@@ -292,7 +348,6 @@ def get_adaptive_question(area, diff):
             if available:
                 diff = fallback
                 break
-                
     if available:
         q = copy.deepcopy(random.choice(available))
         st.session_state.used_q_texts.append(q['q'])
@@ -304,10 +359,8 @@ def get_adaptive_question(area, diff):
     return None
 
 def adjust_difficulty(is_correct, current_diff):
-    if is_correct:
-        return "dificil" if current_diff == "media" else ("media" if current_diff == "facil" else "dificil")
-    else:
-        return "facil" if current_diff == "media" else ("media" if current_diff == "dificil" else "facil")
+    if is_correct: return "dificil" if current_diff == "media" else ("media" if current_diff == "facil" else "dificil")
+    else: return "facil" if current_diff == "media" else ("media" if current_diff == "dificil" else "facil")
 
 # --- ENRUTADOR PRINCIPAL ---
 if st.session_state.screen == 'home':
@@ -333,8 +386,8 @@ if st.session_state.screen == 'home':
                 st.warning("Por favor, ingresa tu nombre.")
 
 elif st.session_state.screen == 'placement_test':
-    total_mcq = 9 # Proporción de oro: 9 preguntas adaptativas
-    total_ai = 3  # Proporción de oro: 3 escenarios de voz/texto
+    total_mcq = 9 
+    total_ai = 3  
     total_steps = total_mcq + total_ai
     current_step = st.session_state.placement_step
     
@@ -397,10 +450,10 @@ elif st.session_state.screen == 'finalizing':
         ai_text = "\n".join([f"Q: {x['q']}\nA: {x['a']}" for x in st.session_state.placement_ai_responses])
         prompt = f"""
         Actúa como un CEO estricto evaluando a un gerente de {st.session_state.user_area}.
-        El candidato obtuvo {st.session_state.placement_score} puntos en la prueba técnica adaptativa.
-        Sus respuestas orales/escritas ante crisis fueron: {ai_text}.
+        El candidato obtuvo {st.session_state.placement_score} puntos en la prueba adaptativa.
+        Sus respuestas orales ante crisis fueron: {ai_text}.
         
-        DEVUELVE TU RESPUESTA ESTRICTAMENTE EN ESTE FORMATO MARKDOWN EXACTO (No uses json, usa este texto con HTML):
+        DEVUELVE TU RESPUESTA ESTRICTAMENTE EN ESTE FORMATO MARKDOWN EXACTO:
 
         <div class='eval-box'>
         <h3>🏆 NIVEL ASIGNADO: [Elige uno: C2 - Master, C1 - Executive, B2 - Advanced, B1 - Intermediate]</h3>
@@ -408,30 +461,21 @@ elif st.session_state.screen == 'finalizing':
         
         <div class='eval-box'>
         <h3>📊 ANÁLISIS DE ERRORES:</h3>
-        <ul>
-        <li>[Error técnico o gramatical grave que cometió]</li>
-        <li>[Falta de autoridad en su vocabulario detectada]</li>
-        </ul>
+        <ul><li>[Error grave 1]</li><li>[Error 2]</li></ul>
         </div>
 
         <div class='eval-box'>
         <h3>⚠️ ÁREAS DE OPORTUNIDAD:</h3>
-        <ul>
-        <li>[Qué debe estudiar o mejorar (ej. usar voz pasiva, jerga financiera)]</li>
-        </ul>
+        <ul><li>[Área 1]</li></ul>
         </div>
 
         <div class='eval-box'>
         <h3>💡 TIPS PRO PARA NIVEL VP:</h3>
-        <ul>
-        <li>[Tip hiper-específico de comunicación ejecutiva 1]</li>
-        <li>[Tip hiper-específico de comunicación ejecutiva 2]</li>
-        </ul>
+        <ul><li>[Tip 1]</li><li>[Tip 2]</li></ul>
         </div>
         """
         res = call_ai(prompt, API_KEY)
         st.session_state.placement_eval_detailed = res
-        
         for level in ["C2", "C1", "B2", "B1", "A2"]:
             if level in res: 
                 st.session_state.english_level = f"{level} - Certified"
@@ -445,9 +489,7 @@ elif st.session_state.screen == 'finalizing':
 
 elif st.session_state.screen == 'results':
     st.markdown("<h1 style='text-align: center; color: #f59e0b;'>Auditoría Finalizada</h1>", unsafe_allow_html=True)
-    
     st.markdown(st.session_state.placement_eval_detailed, unsafe_allow_html=True)
-    
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
@@ -455,36 +497,79 @@ elif st.session_state.screen == 'results':
             st.session_state.screen = 'dashboard'
             st.rerun()
 
-# --- WAR ROOM (¡TOTALMENTE RESTAURADO!) ---
+# --- WAR ROOM ---
 elif st.session_state.screen == 'dashboard':
     st.title(f"🛡️ War Room: {st.session_state.user_name}")
-    tabs = st.tabs(["📅 Roadmap 30 Días", "🤖 AI Combat Lab", "⚔️ Power Verbs", "🔥 The Forge", "📖 Enciclopedia"])
+    tabs = st.tabs(["📅 Roadmap 30 Días", "📖 Enciclopedia", "🤖 AI Combat Lab", "⚔️ Power Verbs", "🔥 The Forge"])
     
+    # 1. ROADMAP INTERACTIVO
     with tabs[0]:
-        st.subheader("Tu Ruta de Transformación Táctica")
-        for plan in THIRTY_DAY_PLAN:
-            is_active = "day-active" if plan['day'] == st.session_state.current_day else ""
-            st.markdown(f"""
-                <div class="day-card {is_active}">
-                    <span style="color: #3b82f6; font-weight: 900;">DÍA {plan['day']} • {plan['phase']}</span>
-                    <h3 style="margin-top: 5px; color: white;">{plan['title']}</h3>
-                    <p style="color:#94a3b8; margin-bottom:0;"><b>Foco:</b> {plan['focus']}</p>
+        st.subheader("Tu Calendario Táctico de 30 Días")
+        st.write("Selecciona un día en la cuadrícula para ver tu misión específica.")
+        
+        # Generador de la cuadrícula de 30 días (6 columnas x 5 filas)
+        cols = st.columns(6)
+        for i in range(1, 31):
+            col_idx = (i - 1) % 6
+            with cols[col_idx]:
+                # Resaltar el día seleccionado
+                btn_type = "primary" if st.session_state.selected_roadmap_day == i else "secondary"
+                if st.button(f"Día {i}", key=f"grid_day_{i}", type=btn_type, use_container_width=True):
+                    st.session_state.selected_roadmap_day = i
+                    st.rerun()
+        
+        # Mostrar el detalle del día seleccionado abajo
+        selected_data = THIRTY_DAY_PLAN[st.session_state.selected_roadmap_day]
+        st.markdown(f"""
+            <div class="mission-card">
+                <span style="color: #3b82f6; font-weight: 900; font-size: 1.2em;">DÍA {st.session_state.selected_roadmap_day} • {selected_data['phase']}</span>
+                <h2 style="color: white; margin-top: 5px;">{selected_data['title']}</h2>
+                <hr style="border-color: #334155;">
+                <p><b>🎯 Actividad:</b> {selected_data['actividad']}</p>
+                <p><b>📦 Entregable:</b> <span style="color: #10b981;">{selected_data['entregable']}</span></p>
+                <p><b>💡 Tip Pro:</b> <span style="color: #f59e0b;">{selected_data['tips']}</span></p>
+                <div style="background-color: #1e293b; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin-top:0;">📋 Plan de Acción Paso a Paso:</h4>
+                    <p style="margin-bottom:0; font-family: monospace;">{selected_data['plan']}</p>
                 </div>
-            """, unsafe_allow_html=True)
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("✅ Marcar Día como Completado y Avanzar"):
+            st.session_state.xp += 200
+            st.session_state.current_day = min(30, st.session_state.selected_roadmap_day + 1)
+            st.session_state.selected_roadmap_day = st.session_state.current_day
+            save_user_progress()
+            st.success("¡Misión Cumplida! Guardado en la nube.")
+            time.sleep(1)
+            st.rerun()
 
+    # 2. ENCICLOPEDIA VP INTERACTIVA
     with tabs[1]:
-        mission = next((p for p in THIRTY_DAY_PLAN if p['day'] == st.session_state.current_day), THIRTY_DAY_PLAN[-1])
-        st.subheader(f"Misión Diaria: {mission['title']}")
-        if st.button("🎙️ Generar Escenario con el Mentor"):
-            with st.spinner("Preparando..."):
-                st.session_state.daily_q = call_ai(f"Elite Mentor. Ask a challenging question about {mission['focus']} to a {st.session_state.user_area} expert. Level {st.session_state.english_level}.", API_KEY)
+        st.subheader("Enciclopedia de Jerga Corporativa (C-Level)")
+        st.write("Aprende no solo el significado, sino cómo usar la palabra como un verdadero Directivo.")
+        
+        category = st.selectbox("📚 Selecciona el Área de Estudio:", list(ENCYCLOPEDIA.keys()))
+        
+        for term, data in ENCYCLOPEDIA[category].items():
+            with st.expander(f"📌 {term}"):
+                st.markdown(f"**Definición:** {data['desc']}")
+                st.markdown(f"<div style='background-color:#1e293b; padding:10px; border-left:4px solid #f59e0b; border-radius:5px;'><b>Cómo lo dice un VP:</b><br> <i>\"{data['uso']}\"</i></div>", unsafe_allow_html=True)
+
+    # 3. AI COMBAT LAB
+    with tabs[2]:
+        mission = THIRTY_DAY_PLAN[st.session_state.selected_roadmap_day]
+        st.subheader(f"Misión Activa: {mission['title']}")
+        if st.button("🎙️ Entrevistarme sobre este tema"):
+            with st.spinner("Llamando al CEO..."):
+                st.session_state.daily_q = call_ai(f"Act as a strict CEO. Ask a challenging question about '{mission['actividad']}' to a {st.session_state.user_area} expert. English Level: {st.session_state.english_level}.", API_KEY)
                 st_text_to_speech(st.session_state.daily_q)
         
         if 'daily_q' in st.session_state:
             st.info(st.session_state.daily_q)
-            ans = st.text_area("Respuesta Ejecutiva:")
+            ans = st.text_area("Tu Respuesta Ejecutiva:")
             st_speech_to_text(key="combat_voice")
-            if st.button("Auditar con Feedback y Pro Tips"):
+            if st.button("Auditar Respuesta"):
                 with st.spinner("Auditando..."):
                     prompt = f"""Evaluate: {ans}. Provide in SPANISH: 1. SCORE (0-100) 2. FEEDBACK TÉCNICO 3. TIP PRO 4. VERSIÓN BOARDROOM."""
                     res = call_ai(prompt, API_KEY)
@@ -492,12 +577,12 @@ elif st.session_state.screen == 'dashboard':
                     st.session_state.xp += 100
                     save_user_progress()
 
-    with tabs[2]:
+    # 4. POWER VERBS
+    with tabs[3]:
         st.subheader("Combate de Reflejos: Power Verbs")
         drill = st.session_state.current_drill
         st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
         pv_ans = st.text_input("Sustituye por la versión ejecutiva:")
-        
         if st.button("Validar Impacto 🎯"):
             if drill[1].lower() in pv_ans.lower():
                 st.success("¡Excelente! Has neutralizado la frase básica.")
@@ -509,24 +594,15 @@ elif st.session_state.screen == 'dashboard':
             else:
                 st.error(f"Sigue siendo básico. La frase letal es: '{drill[1]}'")
 
-    with tabs[3]:
+    # 5. THE FORGE
+    with tabs[4]:
         st.subheader("La Fragua: Forja de Logros")
-        draft = st.text_area("Ingresa un logro básico (ej: Reduje scrap):")
+        draft = st.text_area("Ingresa un logro básico (ej: Reduje el tiempo de entrega 10%):")
         if st.button("⚒️ Forjar Logro VP"):
-            with st.spinner("Forjando..."):
+            with st.spinner("Forjando texto corporativo..."):
                 res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA with a Pro Tip in Spanish: {draft}", API_KEY)
                 st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
                 save_user_progress()
-
-    with tabs[4]:
-        st.subheader("Enciclopedia Técnica")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.write("🏭 **Ops & Supply:** EBITDA, Hard Savings, S&OP.")
-        with c2:
-            st.write("🧬 **Tech & Data:** SQL Query, BigQuery, IRA.")
-        with c3:
-            st.write("⚖️ **Quality:** IATF 16949, Cpk, RCA.")
 
 st.divider()
 st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Algoritmo Adaptativo & Firebase Cloud Enabled | Gemini 3 Flash Preview")
