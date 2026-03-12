@@ -51,7 +51,7 @@ def save_user_progress():
         }
         doc_ref.set(data)
     except:
-        pass # Si falla el guardado, ignoramos para no romper la app
+        pass
 
 def load_user_progress(name):
     """Busca en la nube si el usuario ya tiene un historial guardado."""
@@ -262,7 +262,7 @@ POWER_VERBS_DRILLS = [
     ("I talked to the client", "I orchestrated cross-functional negotiations")
 ]
 
-# --- MOTOR DE IA (GEMINI 3 FLASH PREVIEW RESTAURADO) ---
+# --- MOTOR DE IA (GEMINI 3 FLASH PREVIEW) ---
 def call_ai(prompt, api_key):
     if not api_key: return "⚠️ Error: Falta la API Key en la configuración."
     # Restaurado al modelo padrino según lo solicitado
@@ -308,33 +308,30 @@ with st.sidebar:
 # --- FLUJO PRINCIPAL ---
 
 if not st.session_state.get("placement_completed"):
-    # 1. INGRESO (PERSISTENTE)
+    # 1. INGRESO (PERSISTENTE Y LIMPIO)
     if st.session_state.screen == 'home':
-        st.markdown("<div class='hero-box'><h1>Executive Mastery Protocol</h1><p>Tu progreso se sincroniza automáticamente en la nube.</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='hero-box'><h1>Executive Mastery Protocol</h1><p>Ingresa tu nombre y especialidad. Tu progreso se sincronizará automáticamente en la nube.</p></div>", unsafe_allow_html=True)
+        
         col1, _ = st.columns([1, 1])
         with col1:
-            st.markdown("<div class='executive-card'>", unsafe_allow_html=True)
             name_input = st.text_input("Ingresa tu Nombre Completo:")
+            area_input = st.selectbox("Selecciona tu Especialidad Táctica:", list(DYNAMIC_MCQ.keys()))
+            
+            st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Acceder al Sistema 🧠"):
                 if name_input:
                     with st.spinner("Buscando expediente en la nube..."):
                         if load_user_progress(name_input):
-                            st.success(f"¡Bienvenido de vuelta, {name_input}!")
+                            st.success(f"¡Bienvenido de vuelta, {st.session_state.user_name}!")
                             time.sleep(1.5)
                             st.rerun()
                         else:
                             st.session_state.user_name = name_input
-                            st.session_state.screen = 'setup_area'
+                            st.session_state.user_area = area_input
+                            st.session_state.screen = 'placement_test'
                             st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    elif st.session_state.screen == 'setup_area':
-        st.title(f"Perfil de Mando: {st.session_state.user_name}")
-        area = st.selectbox("Selecciona tu Especialidad Técnica:", list(DYNAMIC_MCQ.keys()))
-        if st.button("Comenzar Auditoría de 16 Etapas"):
-            st.session_state.user_area = area
-            st.session_state.screen = 'placement_test'
-            st.rerun()
+                else:
+                    st.warning("Por favor, ingresa tu nombre para continuar.")
 
     # 2. EXAMEN (12 MCQ + 4 AI = 16 ETAPAS)
     elif st.session_state.screen == 'placement_test':
@@ -492,4 +489,4 @@ else:
             st.write("- **RCA:** Root Cause Analysis (Análisis de Causa Raíz).")
 
 st.divider()
-st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Cloud Persistence & Full Knowledge Base Enabled | Gemini 3 Flash Preview")
+st.caption("Protocolo Diseñado por Ing. Fernando Montes Delgado | Cloud Persistence & Full Knowledge Base Enabled | Gemini 3 Flash Preview")
