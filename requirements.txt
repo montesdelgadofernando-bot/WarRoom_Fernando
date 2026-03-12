@@ -1,3 +1,2 @@
 streamlit 
-requests 
-google-cloud-firestore
+requests google-cloud-firestore
