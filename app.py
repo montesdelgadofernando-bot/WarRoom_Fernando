@@ -65,7 +65,9 @@ def load_user_progress(name):
         if doc.exists:
             u = doc.to_dict()
             st.session_state.user_name = u["user_name"]
-            st.session_state.user_area = u.get("user_area", "Operaciones & Supply Chain")
+            # Compatibilidad: si el usuario viejo tiene string, lo convierte a lista
+            loaded_area = u.get("user_area", ["Operaciones & Supply Chain"])
+            st.session_state.user_area = loaded_area if isinstance(loaded_area, list) else [loaded_area]
             st.session_state.english_level = u.get("english_level", "No Evaluado")
             st.session_state.xp = u.get("xp", 0)
             st.session_state.current_day = u.get("current_day", 1)
@@ -236,20 +238,20 @@ def generate_30_day_plan():
     plan = {}
     phases = ["Fundamentos (Día 1-5)", "Dominio Técnico (Día 6-15)", "Gestión de Crisis (Día 16-22)", "Liderazgo (Día 23-28)", "Boardroom (Día 29-30)"]
     templates = [
-        ("El Pitch de Impacto", "Crear una presentación personal de 3 líneas enfocada en EBITDA.", "Audio grabado de tu pitch sin dudar.", "No uses 'help', usa 'Spearhead' o 'Orchestrate'.", "1. Escribe el pitch. 2. Identifica el ahorro. 3. Graba 10 veces."),
-        ("Contención 8D", "Redactar un correo de respuesta a un problema de calidad.", "Email de 5 líneas con acciones de contención.", "Usa la estructura: Issue -> Containment -> RCA Plan.", "1. Imagina un defecto. 2. Usa 'Deployed containment'. 3. Revisa gramática."),
-        ("Métricas de OEE", "Explicar el OEE de tu línea de producción a un directivo.", "Párrafo explicando la disponibilidad, rendimiento y calidad.", "Evita 'machine stopped', usa 'experienced downtime'.", "1. Calcula un OEE falso. 2. Justifica la pérdida mayor. 3. Propón solución."),
-        ("El Stakeholder Difícil", "Rebatir a alguien que quiere cambiar el alcance del proyecto.", "Guión de respuesta educada pero firme.", "Usa 'impact assessment' antes de decir que no.", "1. Escucha la petición. 2. Pide tiempo para análisis de impacto. 3. Muestra el costo."),
-        ("Negociación de Proveedor", "Exigir a un proveedor que reduzca su Lead Time.", "Script de llamada (3 minutos).", "No pidas 'por favor', exige 'strategic alignment'.", "1. Revisa el contrato. 2. Plantea el impacto en tu EBITDA. 3. Da un ultimátum ejecutivo."),
-        ("Data Storytelling", "Explicar cómo sacaste datos de un SQL o Dashboard.", "Explicación de 1 minuto frente al espejo.", "Usa 'Leveraged data' en lugar de 'looked at Excel'.", "1. Define la base de datos. 2. Explica la tendencia. 3. Da la conclusión de negocio."),
-        ("Defensa de CAPEX", "Justificar la compra de una máquina de $100k USD.", "One-pager (1 hoja) con ROI y Payback.", "Enfócate en la mitigación de riesgos y ahorros duros.", "1. Calcula el ROI. 2. Escribe el riesgo de no comprarla. 3. Haz el cierre fuerte.")
+        ("El Pitch de Impacto", "Crear una presentación personal de 3 líneas enfocada en EBITDA.", "Audio grabado de tu pitch sin dudar.", "Usa conectores fluidos y evita 'help'. Usa 'Spearhead' o 'Orchestrate'.", "1. Escribe el pitch. 2. Identifica el ahorro. 3. Graba 10 veces."),
+        ("Contención 8D", "Redactar un correo de respuesta a un problema de calidad.", "Email de 5 líneas con acciones de contención.", "Usa conectores causales: 'Consequently', 'As a result'.", "1. Imagina un defecto. 2. Usa 'Deployed containment'. 3. Une ideas."),
+        ("Métricas de OEE", "Explicar el OEE de tu línea de producción a un directivo.", "Párrafo explicando la disponibilidad, rendimiento y calidad.", "Usa conectores de adición: 'Furthermore', 'Moreover'.", "1. Calcula un OEE falso. 2. Justifica la pérdida mayor. 3. Propón solución."),
+        ("El Stakeholder Difícil", "Rebatir a alguien que quiere cambiar el alcance del proyecto.", "Guión de respuesta educada pero firme.", "Usa conectores de contraste: 'However', 'Nevertheless'.", "1. Escucha la petición. 2. Pide tiempo para análisis de impacto. 3. Muestra costo."),
+        ("Negociación de Proveedor", "Exigir a un proveedor que reduzca su Lead Time.", "Script de llamada (3 minutos).", "Usa condicionales fuertes: 'Therefore', 'Unless'.", "1. Revisa el contrato. 2. Plantea el impacto en EBITDA. 3. Ultimátum ejecutivo."),
+        ("Data Storytelling", "Explicar cómo sacaste datos de un SQL o Dashboard.", "Explicación de 1 minuto frente al espejo.", "Usa secuenciadores: 'Initially', 'Subsequently', 'Ultimately'.", "1. Define la base. 2. Explica tendencia. 3. Conclusión de negocio."),
+        ("Defensa de CAPEX", "Justificar la compra de una máquina de $100k USD.", "One-pager (1 hoja) con ROI y Payback.", "Enfócate en conectores de propósito: 'In order to', 'So as to'.", "1. Calcula ROI. 2. Riesgo de no comprarla. 3. Cierre fuerte.")
     ]
     for day in range(1, 31):
         phase_idx = min((day - 1) // 6, 4) 
         temp = templates[day % len(templates)]
-        if day == 1: temp = ("El Pitch de Impacto (EBITDA)", "Redactar tu valor financiero.", "Audio grabado del pitch.", "Prohibido usar 'help'. Usa 'Orchestrate'.", "1. Escribe 3 líneas. 2. Traduce métricas. 3. Graba.")
-        if day == 15: temp = ("Auditoría Global (Mid-Term)", "Simular respuesta a un auditor VDA 6.3/IATF.", "Reporte 8D resumido en inglés.", "Menciona 'Risk-based thinking'.", "1. Identifica hallazgo. 2. Define contención. 3. Causa Raíz.")
-        if day == 30: temp = ("La Prueba de Fuego (CEO)", "Responder cómo reducirás 20% el OPEX sin afectar calidad.", "Video de 3 minutos sin cortes.", "Usa estructura de 3 puntos (First, Second, Ultimately).", "1. Vístete profesional. 2. Activa la cámara. 3. Vende tu estrategia.")
+        if day == 1: temp = ("El Pitch de Impacto (EBITDA)", "Redactar tu valor financiero.", "Audio grabado del pitch.", "Usa conectores en lugar de frases sueltas. Ej: 'Furthermore'.", "1. Escribe 3 líneas. 2. Traduce métricas. 3. Graba.")
+        if day == 15: temp = ("Auditoría Global (Mid-Term)", "Simular respuesta a un auditor VDA 6.3/IATF.", "Reporte 8D resumido en inglés.", "Menciona 'Risk-based thinking' y usa 'Consequently'.", "1. Identifica hallazgo. 2. Define contención. 3. Causa Raíz.")
+        if day == 30: temp = ("La Prueba de Fuego (CEO)", "Responder cómo reducirás 20% el OPEX sin afectar calidad.", "Video de 3 minutos sin cortes.", "Usa estructura de conectores (First, Second, Ultimately).", "1. Vístete profesional. 2. Activa la cámara. 3. Vende tu estrategia.")
 
         plan[day] = {
             "phase": phases[phase_idx], "title": temp[0], "actividad": temp[1], "entregable": temp[2], "tips": temp[3], "plan": temp[4]
@@ -261,25 +263,25 @@ THIRTY_DAY_PLAN = generate_30_day_plan()
 # --- ENCICLOPEDIA TÉCNICA INTERACTIVA ---
 ENCYCLOPEDIA = {
     "Operaciones & Supply Chain": {
-        "EBITDA": {"desc": "Beneficio antes de intereses, impuestos, depreciación y amortización.", "uso": "This strategic initiative protected our EBITDA margins by 12%."},
-        "S&OP": {"desc": "Sales and Operations Planning. Alineación mensual de demanda y capacidad.", "uso": "We re-baselined the S&OP to mitigate forecast variance and reduce stockouts."},
-        "Throughput": {"desc": "Tasa real de producción o flujo de trabajo del sistema.", "uso": "We maximized throughput while maintaining rigorous zero-defect standards."},
-        "Lead Time": {"desc": "Tiempo total desde la orden del cliente hasta la entrega.", "uso": "We negotiated a 15% lead-time reduction to accelerate time-to-market."},
-        "Bottleneck": {"desc": "Restricción que dicta la capacidad máxima de todo el sistema.", "uso": "I orchestrated a Takt-time analysis to eliminate the primary bottleneck."}
+        "EBITDA": {"desc": "Beneficio antes de intereses, impuestos, depreciación y amortización.", "uso": "Furthermore, this strategic initiative protected our EBITDA margins by 12%."},
+        "S&OP": {"desc": "Sales and Operations Planning. Alineación mensual de demanda y capacidad.", "uso": "Consequently, we re-baselined the S&OP to mitigate forecast variance."},
+        "Throughput": {"desc": "Tasa real de producción o flujo de trabajo del sistema.", "uso": "We maximized throughput; moreover, we maintained rigorous zero-defect standards."},
+        "Lead Time": {"desc": "Tiempo total desde la orden del cliente hasta la entrega.", "uso": "As a result, we negotiated a 15% lead-time reduction to accelerate time-to-market."},
+        "Bottleneck": {"desc": "Restricción que dicta la capacidad máxima de todo el sistema.", "uso": "Therefore, I orchestrated a Takt-time analysis to eliminate the bottleneck."}
     },
     "Calidad & Lean Manufacturing": {
-        "RCA (Root Cause Analysis)": {"desc": "Metodología para identificar el origen sistemático de un problema.", "uso": "I spearheaded a data-driven RCA to deploy permanent countermeasures."},
-        "Cpk (Process Capability)": {"desc": "Índice que mide qué tan centrado y estable está un proceso.", "uso": "We stabilized the process parameters, raising the Cpk from 0.8 to 1.67."},
-        "Containment": {"desc": "Acción inmediata para proteger al cliente de un defecto (Sort/Rework).", "uso": "Immediate containment actions were deployed to quarantine the suspect lots."},
-        "Poka-Yoke": {"desc": "Mecanismo a prueba de errores integrado en el proceso.", "uso": "We implemented robust error-proofing countermeasures to eliminate human error."},
-        "Scrap": {"desc": "Material desechado por no cumplir con especificaciones.", "uso": "The Lean initiative delivered a 30% reduction in scrap, generating hard savings."}
+        "RCA (Root Cause Analysis)": {"desc": "Metodología para identificar el origen sistemático de un problema.", "uso": "I spearheaded a data-driven RCA to subsequently deploy countermeasures."},
+        "Cpk (Process Capability)": {"desc": "Índice que mide qué tan centrado y estable está un proceso.", "uso": "We stabilized the parameters, effectively raising the Cpk from 0.8 to 1.67."},
+        "Containment": {"desc": "Acción inmediata para proteger al cliente de un defecto.", "uso": "Due to the defect, immediate containment actions were deployed to quarantine lots."},
+        "Poka-Yoke": {"desc": "Mecanismo a prueba de errores integrado en el proceso.", "uso": "In order to eliminate human error, we implemented robust error-proofing countermeasures."},
+        "Scrap": {"desc": "Material desechado por no cumplir con especificaciones.", "uso": "Ultimately, the Lean initiative delivered a 30% reduction in scrap."}
     },
     "Project Management & Data": {
-        "Scope Creep": {"desc": "Aumento descontrolado del alcance original de un proyecto.", "uso": "We implemented a strict change-control board to prevent scope creep."},
-        "Agile / Scrum": {"desc": "Metodología iterativa para entrega rápida de valor.", "uso": "We transitioned to an Agile framework, improving cross-functional collaboration."},
-        "SQL / BigQuery": {"desc": "Lenguajes y herramientas para extracción y análisis masivo de datos.", "uso": "I leveraged BigQuery analytics to extract actionable insights from raw data."},
-        "Stakeholder": {"desc": "Cualquier persona afectada o con interés en el proyecto.", "uso": "I orchestrated a workshop to ensure complete stakeholder alignment."},
-        "ROI (Return on Investment)": {"desc": "Retorno de inversión de un proyecto o maquinaria.", "uso": "The projected ROI for this CAPEX request is under 14 months."}
+        "Scope Creep": {"desc": "Aumento descontrolado del alcance original de un proyecto.", "uso": "To prevent scope creep, we implemented a strict change-control board."},
+        "Agile / Scrum": {"desc": "Metodología iterativa para entrega rápida de valor.", "uso": "We transitioned to Agile, significantly improving cross-functional collaboration."},
+        "SQL / BigQuery": {"desc": "Lenguajes para extracción y análisis masivo de datos.", "uso": "I leveraged BigQuery analytics to extract actionable insights from raw data."},
+        "Stakeholder": {"desc": "Cualquier persona afectada o con interés en el proyecto.", "uso": "I orchestrated a workshop; thus ensuring complete stakeholder alignment."},
+        "ROI (Return on Investment)": {"desc": "Retorno de inversión de un proyecto o maquinaria.", "uso": "Consequently, the projected ROI for this CAPEX request is under 14 months."}
     },
     "Power Verbs (Verbos de Poder)": {
         "Spearhead": {"desc": "Liderar una iniciativa o proyecto importante.", "uso": "I spearheaded the automation project across three facilities."},
@@ -313,7 +315,7 @@ def call_ai(prompt, api_key):
 # --- MANEJO DE ESTADO CENTRALIZADO ---
 if 'screen' not in st.session_state: st.session_state.screen = 'home'
 if 'user_name' not in st.session_state: st.session_state.user_name = ""
-if 'user_area' not in st.session_state: st.session_state.user_area = "Operaciones & Supply Chain"
+if 'user_area' not in st.session_state: st.session_state.user_area = ["Operaciones & Supply Chain"] # Ahora es una Lista
 if 'english_level' not in st.session_state: st.session_state.english_level = "No Evaluado"
 if 'xp' not in st.session_state: st.session_state.xp = 0
 if 'current_day' not in st.session_state: st.session_state.current_day = 1
@@ -352,25 +354,33 @@ with st.sidebar:
             st.session_state.screen = 'dashboard'
             st.rerun()
     st.divider()
-    # --------------------------------
 
     if st.session_state.user_name:
+        # Formatear la lista de áreas para que se vea bonita en el sidebar
+        areas_str_sidebar = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
         st.write(f"**Líder:** {st.session_state.user_name}")
-        st.write(f"**Especialidad:** {st.session_state.user_area}")
+        st.write(f"**Especialidad:** {areas_str_sidebar}")
         st.write(f"**Nivel:** {st.session_state.english_level}")
         st.write(f"**XP:** {st.session_state.xp}")
     if st.button("🔄 Reset / Cerrar Sesión"):
         for k in list(st.session_state.keys()): del st.session_state[k]
         st.rerun()
 
-# --- FUNCIONES ADAPTATIVAS ---
-def get_adaptive_question(area, diff):
-    pool = DYNAMIC_MCQ.get(area, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(diff, [])
+# --- FUNCIONES ADAPTATIVAS E INMERSIÓN NATURAL ---
+def get_adaptive_question(areas, diff):
+    # Consolidar preguntas de TODAS las áreas seleccionadas
+    areas_list = areas if isinstance(areas, list) else [areas]
+    pool = []
+    for a in areas_list:
+        pool.extend(DYNAMIC_MCQ.get(a, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(diff, []))
+        
     available = [q for q in pool if q['q'] not in st.session_state.used_q_texts]
     if not available:
         for fallback in ["media", "facil", "dificil"]:
-            pool = DYNAMIC_MCQ.get(area, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(fallback, [])
-            available = [q for q in pool if q['q'] not in st.session_state.used_q_texts]
+            pool_fallback = []
+            for a in areas_list:
+                pool_fallback.extend(DYNAMIC_MCQ.get(a, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(fallback, []))
+            available = [q for q in pool_fallback if q['q'] not in st.session_state.used_q_texts]
             if available:
                 diff = fallback
                 break
@@ -388,13 +398,15 @@ def adjust_difficulty(is_correct, current_diff):
     if is_correct: return "dificil" if current_diff == "media" else ("media" if current_diff == "facil" else "dificil")
     else: return "facil" if current_diff == "media" else ("media" if current_diff == "dificil" else "facil")
 
-def generate_vocabulary_suggestions(context, area):
-    prompt = f"""Actúa como un Asistente de Redacción Ejecutiva para un líder en {area}.
+def generate_vocabulary_suggestions(context, areas):
+    areas_str = ", ".join(areas) if isinstance(areas, list) else areas
+    prompt = f"""Actúa como un Asistente de Adquisición Natural de Idioma para un líder en {areas_str}.
     El usuario necesita escribir o hablar sobre: '{context}'.
+    Ignora las reglas gramaticales complejas. Enséñale por inmersión (como aprenden los niños), dándole los bloques de construcción exactos para sonar natural y con autoridad.
     Sugiere vocabulario en inglés dividido en 2 listas muy cortas y directas:
-    1. 🟢 Palabras de uso común y conectores (3 sugerencias).
-    2. 🚀 Power Verbs / Nivel VP (3 verbos o frases de alto impacto corporativo).
-    Formato Markdown, sin introducciones largas."""
+    1. 🔗 Conectores Lógicos Naturales (3 sugerencias de conectores para unir ideas fluidamente, ej. Moreover, As a result, Consequently).
+    2. 🚀 Power Verbs / Nivel VP (3 verbos o frases de alto impacto corporativo para evitar palabras básicas).
+    Formato Markdown, usando viñetas. Sin introducciones largas, ve directo al grano."""
     return call_ai(prompt, API_KEY)
 
 # --- ENRUTADOR PRINCIPAL ---
@@ -403,10 +415,11 @@ if st.session_state.screen == 'home':
     col1, _ = st.columns([1, 1])
     with col1:
         name_input = st.text_input("Ingresa tu Nombre Completo:")
-        area_input = st.selectbox("Selecciona tu Especialidad Táctica:", list(DYNAMIC_MCQ.keys()))
+        # NUEVO MULTISELECT PARA 3 ESPECIALIDADES
+        area_input = st.multiselect("Selecciona tus Especialidades Tácticas (máximo 3):", list(DYNAMIC_MCQ.keys()), default=["Operaciones & Supply Chain"], max_selections=3)
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Acceder al Sistema 🧠"):
-            if name_input:
+            if name_input and len(area_input) > 0:
                 with st.spinner("Buscando expediente en la nube..."):
                     if load_user_progress(name_input):
                         st.success(f"¡Bienvenido de vuelta, {st.session_state.user_name}!")
@@ -417,8 +430,10 @@ if st.session_state.screen == 'home':
                         st.session_state.user_area = area_input
                         st.session_state.screen = 'placement_test'
                         st.rerun()
-            else:
+            elif not name_input:
                 st.warning("Por favor, ingresa tu nombre.")
+            elif len(area_input) == 0:
+                st.warning("Por favor, selecciona al menos una especialidad.")
 
 elif st.session_state.screen == 'placement_test':
     total_mcq = 9 
@@ -426,8 +441,10 @@ elif st.session_state.screen == 'placement_test':
     total_steps = total_mcq + total_ai
     current_step = st.session_state.placement_step
     
+    areas_str = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
+    
     st.progress(current_step / total_steps)
-    st.subheader(f"Etapa {current_step+1} de {total_steps} ({st.session_state.user_area})")
+    st.subheader(f"Etapa {current_step+1} de {total_steps} ({areas_str})")
 
     if current_step < total_mcq:
         if st.session_state.current_q is None:
@@ -456,7 +473,7 @@ elif st.session_state.screen == 'placement_test':
         ai_step = current_step - total_mcq
         if not st.session_state.dynamic_scenarios:
             with st.spinner("IA generando 3 escenarios ejecutivos en tiempo real..."):
-                prompt = f"Write exactly 3 tough corporate scenarios asking for action, tailored for a {st.session_state.user_area} leader. Format: Scenario 1 --- Scenario 2 --- Scenario 3"
+                prompt = f"Write exactly 3 tough corporate scenarios asking for action, tailored for a {areas_str} leader. Format: Scenario 1 --- Scenario 2 --- Scenario 3"
                 res = call_ai(prompt, API_KEY)
                 st.session_state.dynamic_scenarios = res.split('---')
 
@@ -483,11 +500,14 @@ elif st.session_state.screen == 'finalizing':
         
     with st.spinner("El Mentor Elite está cruzando tus respuestas con estándares C-Level..."):
         ai_text = "\n".join([f"Q: {x['q']}\nA: {x['a']}" for x in st.session_state.placement_ai_responses])
+        areas_str = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
+        
         prompt = f"""
-        Actúa como un CEO estricto evaluando a un gerente de {st.session_state.user_area}.
+        Actúa como un CEO estricto evaluando a un gerente experto en {areas_str}.
         El candidato obtuvo {st.session_state.placement_score} puntos en la prueba adaptativa.
         Sus respuestas orales ante crisis fueron: {ai_text}.
         
+        Evalúa su impacto, uso de conectores lógicos y nivel de autoridad (ignora la gramática básica).
         DEVUELVE TU RESPUESTA ESTRICTAMENTE EN ESTE FORMATO MARKDOWN EXACTO:
 
         <div class='eval-box'>
@@ -495,18 +515,18 @@ elif st.session_state.screen == 'finalizing':
         </div>
         
         <div class='eval-box'>
-        <h3>📊 ANÁLISIS DE ERRORES:</h3>
-        <ul><li>[Error grave 1]</li><li>[Error 2]</li></ul>
+        <h3>📊 ANÁLISIS DE FLUIDEZ Y AUTORIDAD:</h3>
+        <ul><li>[Falta de impacto o conectores que cometió 1]</li><li>[Falta de autoridad en su vocabulario 2]</li></ul>
         </div>
 
         <div class='eval-box'>
         <h3>⚠️ ÁREAS DE OPORTUNIDAD:</h3>
-        <ul><li>[Área 1]</li></ul>
+        <ul><li>[Qué conectores lógicos o jerga debe integrar para sonar natural]</li></ul>
         </div>
 
         <div class='eval-box'>
         <h3>💡 TIPS PRO PARA NIVEL VP:</h3>
-        <ul><li>[Tip 1]</li><li>[Tip 2]</li></ul>
+        <ul><li>[Tip 1 sobre inmersión corporativa]</li><li>[Tip 2 sobre estructurar ideas]</li></ul>
         </div>
         """
         res = call_ai(prompt, API_KEY)
@@ -525,13 +545,13 @@ elif st.session_state.screen == 'finalizing':
 elif st.session_state.screen == 'results':
     st.markdown("<h1 style='text-align: center; color: #f59e0b;'>Auditoría Finalizada</h1>", unsafe_allow_html=True)
     
-    st.markdown(f"<p style='text-align:center; font-size:1.2em;'>Candidato: <b>{st.session_state.user_name}</b> | Especialidad: <b>{st.session_state.user_area}</b></p>", unsafe_allow_html=True)
+    areas_str = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
+    st.markdown(f"<p style='text-align:center; font-size:1.2em;'>Candidato: <b>{st.session_state.user_name}</b> | Especialidad: <b>{areas_str}</b></p>", unsafe_allow_html=True)
     st.markdown(st.session_state.placement_eval_detailed, unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        # --- BOTÓN DE IMPRESIÓN (PDF CERO MEMORIA) ---
         components.html("""
             <button onclick="window.parent.print()" style="width:100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1em; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 🖨️ Guardar Reporte como PDF
@@ -578,9 +598,9 @@ elif st.session_state.screen == 'dashboard':
         """, unsafe_allow_html=True)
         
         sug_key_1 = f"rm_{st.session_state.selected_roadmap_day}"
-        with st.expander("🤖 Asistente Estratégico (Sugerencias de Vocabulario)"):
-            if st.button("💡 Sugerir palabras clave para esta actividad", key="btn_a_1"):
-                with st.spinner("Analizando..."):
+        with st.expander("🤖 Asistente Estratégico (Conectores y Power Verbs)"):
+            if st.button("💡 Sugerir bloques de construcción para tu respuesta", key="btn_a_1"):
+                with st.spinner("Analizando por inmersión..."):
                     st.session_state.assistant_suggestions[sug_key_1] = generate_vocabulary_suggestions(selected_data['actividad'], st.session_state.user_area)
             if st.session_state.assistant_suggestions.get(sug_key_1):
                 st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_1]}</div>", unsafe_allow_html=True)
@@ -597,7 +617,7 @@ elif st.session_state.screen == 'dashboard':
     # 2. ENCICLOPEDIA VP INTERACTIVA
     with tabs[1]:
         st.subheader("Enciclopedia de Jerga Corporativa (Buscador AI)")
-        st.write("Busca cualquier término técnico o acrónimo. El Mentor Elite te enseñará cómo usarlo con autoridad directiva.")
+        st.write("Busca cualquier término técnico o acrónimo. El Mentor Elite te enseñará cómo conectarlo fluidamente.")
         
         search_term = st.text_input("🔍 Buscar término (ej. Bottleneck, Micromanagement, EBITDA, Kanban):", key="search_term_input")
         if st.button("Buscar en la Base de Datos C-Level", type="primary"):
@@ -609,8 +629,8 @@ elif st.session_state.screen == 'dashboard':
                     <h3 style='color:white; margin-top:0; font-size:1.5em;'>📖 {search_term.upper()}</h3>
                     <p style='color:#cbd5e1; font-size:1.1em;'><b>Definición:</b> [Definición técnica y ejecutiva muy clara en español]</p>
                     <hr style='border-color:#334155; margin:15px 0;'>
-                    <p style='color:#f87171; font-size:1.1em;'><b>🚫 Un Junior diría:</b> <i>"[Frase débil o común en inglés usando este término o concepto]"</i></p>
-                    <p style='color:#34d399; font-size:1.1em;'><b>✅ Un VP diría:</b> <i>"[Frase de alto impacto, estratégica y dominante en inglés demostrando liderazgo]"</i></p>
+                    <p style='color:#f87171; font-size:1.1em;'><b>🚫 Un Junior diría:</b> <i>"[Frase débil, sin conectores lógicos]"</i></p>
+                    <p style='color:#34d399; font-size:1.1em;'><b>✅ Un VP diría:</b> <i>"[Frase de alto impacto, usando un conector lógico como 'Therefore' o 'Consequently' y un Power Verb]"</i></p>
                     </div>"""
                     st.session_state.encyclopedia_result = call_ai(prompt_enc, API_KEY)
 
@@ -626,17 +646,17 @@ elif st.session_state.screen == 'dashboard':
         category = st.selectbox("Explorar categorías base:", list(ENCYCLOPEDIA.keys()))
         
         sug_key_2 = f"enc_{category}"
-        with st.expander("🤖 Asistente Estratégico (Ampliar mi Vocabulario)"):
-            if st.button("💡 Sugerir nuevas palabras VP para esta especialidad", key="btn_a_2"):
+        with st.expander("🤖 Asistente Estratégico (Conectores y Palabras Nuevas)"):
+            if st.button("💡 Sugerir bloques lógicos para esta especialidad", key="btn_a_2"):
                 with st.spinner("Buscando términos..."):
-                    st.session_state.assistant_suggestions[sug_key_2] = generate_vocabulary_suggestions(f"Términos técnicos y jerga corporativa de {category}", st.session_state.user_area)
+                    st.session_state.assistant_suggestions[sug_key_2] = generate_vocabulary_suggestions(f"Términos técnicos y conectores lógicos de {category}", st.session_state.user_area)
             if st.session_state.assistant_suggestions.get(sug_key_2):
                 st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_2]}</div>", unsafe_allow_html=True)
         
         for term, data in ENCYCLOPEDIA[category].items():
             with st.expander(f"📌 {term}"):
                 st.markdown(f"**Definición:** {data['desc']}")
-                st.markdown(f"<div style='background-color:#1e293b; padding:10px; border-left:4px solid #f59e0b; border-radius:5px;'><b>Cómo lo dice un VP:</b><br> <i>\"{data['uso']}\"</i></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background-color:#1e293b; padding:10px; border-left:4px solid #f59e0b; border-radius:5px;'><b>Cómo lo hila un VP:</b><br> <i>\"{data['uso']}\"</i></div>", unsafe_allow_html=True)
 
     # 3. AI COMBAT LAB
     with tabs[2]:
@@ -644,25 +664,26 @@ elif st.session_state.screen == 'dashboard':
         st.subheader(f"Misión Activa: {mission['title']}")
         if st.button("🎙️ Entrevistarme sobre este tema"):
             with st.spinner("Llamando al CEO..."):
-                st.session_state.daily_q = call_ai(f"Act as a strict CEO. Ask a challenging question about '{mission['actividad']}' to a {st.session_state.user_area} expert. English Level: {st.session_state.english_level}.", API_KEY)
+                areas_str = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
+                st.session_state.daily_q = call_ai(f"Act as a strict CEO. Ask a challenging question about '{mission['actividad']}' to an expert in {areas_str}. English Level: {st.session_state.english_level}.", API_KEY)
                 st_text_to_speech(st.session_state.daily_q)
         
         if 'daily_q' in st.session_state:
             st.info(st.session_state.daily_q)
             
             sug_key_3 = f"cl_{st.session_state.current_day}"
-            with st.expander("🤖 Asistente Estratégico (Vocabulario para tu Respuesta)"):
-                if st.button("💡 Sugerir vocabulario clave para contestar", key="btn_a_3"):
-                    with st.spinner("Analizando pregunta..."):
+            with st.expander("🤖 Asistente Estratégico (Conectores para tu Respuesta)"):
+                if st.button("💡 Sugerir bloques de construcción lógicos", key="btn_a_3"):
+                    with st.spinner("Analizando la pregunta por inmersión..."):
                         st.session_state.assistant_suggestions[sug_key_3] = generate_vocabulary_suggestions(f"Responder a la pregunta: {st.session_state.daily_q}", st.session_state.user_area)
                 if st.session_state.assistant_suggestions.get(sug_key_3):
                     st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_3]}</div>", unsafe_allow_html=True)
             
-            ans = st.text_area("Tu Respuesta Ejecutiva:")
+            ans = st.text_area("Tu Respuesta Ejecutiva (Únelo con conectores):")
             st_speech_to_text(key="combat_voice")
             if st.button("Auditar Respuesta"):
-                with st.spinner("Auditando..."):
-                    prompt = f"""Evaluate: {ans}. Provide in SPANISH: 1. SCORE (0-100) 2. FEEDBACK TÉCNICO 3. TIP PRO 4. VERSIÓN BOARDROOM."""
+                with st.spinner("Auditando fluidez..."):
+                    prompt = f"""Evaluate: {ans}. Provide in SPANISH: 1. SCORE (0-100) 2. FEEDBACK (Enfocado en uso de conectores e impacto, no des lecciones de gramática) 3. TIP PRO 4. VERSIÓN BOARDROOM."""
                     res = call_ai(prompt, API_KEY)
                     st.markdown(f"<div class='level-box' style='background-color: #1e293b; border-left-color: #f59e0b;'>{res}</div>", unsafe_allow_html=True)
                     st.session_state.xp += 100
@@ -670,15 +691,15 @@ elif st.session_state.screen == 'dashboard':
 
     # 4. POWER VERBS
     with tabs[3]:
-        st.subheader("Combate de Reflejos: Power Verbs")
+        st.subheader("Combate de Reflejos: Power Verbs & Conectores")
         drill = st.session_state.current_drill
         st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
         
         sug_key_4 = f"pv_{drill[0]}"
-        with st.expander("🤖 Asistente Estratégico (Pista de Sinónimos)"):
-            if st.button("💡 Dame una pista (Verbos similares)", key="btn_a_4"):
-                with st.spinner("Buscando..."):
-                    st.session_state.assistant_suggestions[sug_key_4] = call_ai(f"El usuario intenta adivinar la frase ejecutiva '{drill[1]}' a partir de la frase junior '{drill[0]}'. Sugiere 3 verbos en inglés (sin revelar la respuesta completa) que le sirvan de pista.", API_KEY)
+        with st.expander("🤖 Asistente Estratégico (Pista Natural)"):
+            if st.button("💡 Dame una pista (Conectores o Sinónimos)", key="btn_a_4"):
+                with st.spinner("Buscando bloques de construcción..."):
+                    st.session_state.assistant_suggestions[sug_key_4] = call_ai(f"El usuario intenta adivinar la frase ejecutiva '{drill[1]}' a partir de la básica '{drill[0]}'. Sugiere 3 verbos o conectores en inglés (sin revelar la respuesta completa) que le sirvan de bloque de construcción.", API_KEY)
             if st.session_state.assistant_suggestions.get(sug_key_4):
                 st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_4]}</div>", unsafe_allow_html=True)
                 
@@ -697,19 +718,19 @@ elif st.session_state.screen == 'dashboard':
     # 5. THE FORGE
     with tabs[4]:
         st.subheader("La Fragua: Forja de Logros")
-        draft = st.text_area("Ingresa un logro básico (ej: Reduje el tiempo de entrega 10%):")
+        draft = st.text_area("Ingresa un logro básico (ej: Reduje el tiempo de entrega 10% y el jefe me felicitó):")
         
         sug_key_5 = "forge_current"
-        with st.expander("🤖 Asistente Estratégico (Mejorar mi Logro)"):
-            if st.button("💡 Sugerir vocabulario y métricas de impacto", key="btn_a_5"):
-                with st.spinner("Buscando..."):
+        with st.expander("🤖 Asistente Estratégico (Conectar ideas)"):
+            if st.button("💡 Sugerir conectores lógicos y métricas", key="btn_a_5"):
+                with st.spinner("Generando bloques lógicos..."):
                     st.session_state.assistant_suggestions[sug_key_5] = generate_vocabulary_suggestions(f"Mejorar la redacción de este logro: {draft}" if draft else "Redactar un logro financiero de alto impacto (reducción de costos, optimización)", st.session_state.user_area)
             if st.session_state.assistant_suggestions.get(sug_key_5):
                 st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_5]}</div>", unsafe_allow_html=True)
                 
         if st.button("⚒️ Forjar Logro VP"):
-            with st.spinner("Forjando texto corporativo..."):
-                res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA with a Pro Tip in Spanish: {draft}", API_KEY)
+            with st.spinner("Forjando texto corporativo fluido..."):
+                res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA using natural logical connectors (Furthermore, As a result) with a Pro Tip in Spanish: {draft}", API_KEY)
                 st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
                 save_user_progress()
 
