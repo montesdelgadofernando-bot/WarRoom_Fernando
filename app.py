@@ -735,3 +735,4 @@ elif st.session_state.screen == 'dashboard':
 
 st.divider()
 st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Adquisición Natural & Algoritmo Adaptativo | Gemini 3 Flash Preview")
+
