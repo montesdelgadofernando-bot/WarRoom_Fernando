@@ -83,7 +83,7 @@ def load_user_progress(name):
     except: pass
     return False
 
-# --- CSS + MODO IMPRESIÓN ---
+# --- CSS + MODO IMPRESIÓN PDF ---
 st.markdown("""
     <style>
     .stApp { background-color: #0f172a; color: #f8fafc; }
@@ -107,13 +107,27 @@ st.markdown("""
         .stApp { background-color: white !important; color: black !important; }
         .eval-box { background-color: white !important; color: black !important; border: 1px solid #cbd5e1 !important; border-left: 6px solid #3b82f6 !important; }
         h1, h2, h3, h4, p, li, span, b, i { color: black !important; }
+        iframe { display: none !important; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif !important; }
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- MULTIMEDIA ---
+# --- COMPONENTES MULTIMEDIA ---
 def st_speech_to_text(key):
-    script = """<script>const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.lang = 'en-US'; recognition.interimResults = false; function startDictation() { recognition.start(); } recognition.onresult = (event) => { const text = event.results[0][0].transcript; window.parent.postMessage({type: 'streamlit:setComponentValue', value: text, key: '""" + key + """'}, '*'); }; </script><div style="text-align: center;"><button onclick="startDictation()" style="background: #f59e0b; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor:pointer;">🎙️ Click to Speak (English)</button></div>"""
+    script = """
+    <script>
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    function startDictation() { recognition.start(); }
+    recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        window.parent.postMessage({type: 'streamlit:setComponentValue', value: text, key: '""" + key + """'}, '*');
+    };
+    </script>
+    <div style="text-align: center;"><button onclick="startDictation()" style="background: #f59e0b; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor:pointer;">🎙️ Click to Speak (English)</button></div>
+    """
     return components.html(script, height=80)
 
 def st_text_to_speech(text):
@@ -121,11 +135,11 @@ def st_text_to_speech(text):
         clean = text.replace('"', '\\"').replace('\n', ' ')
         components.html(f"<script>const m=new SpeechSynthesisUtterance('{clean}');m.lang='en-US';m.rate=0.95;window.speechSynthesis.speak(m);</script>", height=0)
 
-# --- API ---
+# --- BÓVEDA DE API ---
 try: API_KEY = st.secrets["GEMINI_API_KEY"]
 except: API_KEY = ""
 
-# --- BANCO DE PREGUNTAS (SISTEMA ADAPTATIVO AVANZADO - OPCIONES COMPLEJAS) ---
+# --- BANCO DE PREGUNTAS AVANZADAS (Difíciles por contexto, no obvias) ---
 DYNAMIC_MCQ = {
     "Operaciones & Supply Chain": {
         "facil": [
@@ -177,13 +191,28 @@ DYNAMIC_MCQ = {
 for area in ["Project Manager", "Ingeniería de Producto", "Data Science & SQL", "Logística", "Producción", "Otra"]:
     if area not in DYNAMIC_MCQ: DYNAMIC_MCQ[area] = copy.deepcopy(DYNAMIC_MCQ["Operaciones & Supply Chain"])
 
-# --- DRILLS & VOCAB ---
-POWER_VERBS_DRILLS = [("I fixed the problem", "I rectified the non-conformance"), ("I saved money", "I delivered substantial hard savings"), ("I used data", "I leveraged data analytics"), ("I started a project", "I spearheaded a strategic initiative"), ("I led the team", "I orchestrated the cross-functional team")]
-CONNECTORS_DRILLS = [{"junior": "The supplier was late. We missed the deadline.", "type": "Causa y Efecto", "target": ["consequently", "therefore", "thus"]}, {"junior": "The budget was cut. We delivered the project on time.", "type": "Contraste", "target": ["nevertheless", "however", "despite this"]}, {"junior": "We increased production. We maintained zero defects.", "type": "Adición", "target": ["furthermore", "moreover", "additionally"]}]
+# --- DATA DRILLS (VERBOS Y CONECTORES) ---
+POWER_VERBS_DRILLS = [
+    ("I fixed the problem", "I rectified the non-conformance"),
+    ("I saved money", "I delivered substantial hard savings"),
+    ("I used data", "I leveraged data analytics to drive decision-making"),
+    ("I started a project", "I spearheaded a strategic initiative"),
+    ("I talked to the client", "I orchestrated cross-functional negotiations"),
+    ("I lowered the cost", "I optimized the OPEX parameters"),
+    ("I found the error", "I identified the root cause constraint")
+]
 
-DAILY_VOCAB = ["Leverage (Aprovechar al máximo)", "Spearhead (Liderar iniciativa)", "Mitigate (Reducir riesgo)", "EBITDA (Rentabilidad operativa)", "Consequently (Por lo tanto)", "Furthermore (Además)", "Orchestrate (Coordinar estratégicamente)", "Hard Savings (Ahorros auditables)", "Constraint (Cuello de botella)", "Deploy (Implementar/Desplegar)"]
+CONNECTORS_DRILLS = [
+    {"junior": "The supplier was late. We missed the deadline.", "type": "Causa y Efecto", "target": ["consequently", "as a result", "therefore", "thus"]},
+    {"junior": "The budget was cut. We delivered the project on time.", "type": "Contraste", "target": ["nevertheless", "however", "despite this", "yet"]},
+    {"junior": "We increased production. We maintained zero defects.", "type": "Adición", "target": ["furthermore", "moreover", "in addition", "additionally"]},
+    {"junior": "We need to reduce costs. We will automate the line.", "type": "Propósito", "target": ["in order to", "so as to", "to effectively"]},
+    {"junior": "The system failed. The power went out.", "type": "Causa", "target": ["due to", "because of", "stemming from"]}
+]
 
-# --- PLAN PROGRESIVO DE 90 DÍAS (3 MESES) ---
+DAILY_VOCAB = ["Leverage (Aprovechar)", "Spearhead (Liderar)", "Mitigate (Mitigar)", "EBITDA (Rentabilidad)", "Consequently (Por lo tanto)", "Furthermore (Además)", "Orchestrate (Coordinar)", "Hard Savings (Ahorros reales)", "Constraint (Restricción)", "Deploy (Desplegar)"]
+
+# --- PLAN PROGRESIVO DE 90 DÍAS ---
 def generate_90_day_plan():
     plan = {}
     phases = ["Mes 1: Cimientos de Autoridad (A1->B1)", "Mes 2: Liderazgo Estratégico (B1->B2)", "Mes 3: Boardroom Fluency (B2->C1+)"]
@@ -198,42 +227,46 @@ def generate_90_day_plan():
     for day in range(1, 91):
         phase_idx = min((day - 1) // 30, 2) 
         temp = templates[day % len(templates)]
-        
-        # Temas para Inmersión Activa según el día
         video_topic = "Supply Chain Resilience" if day % 2 == 0 else "Leadership under pressure"
         
         circuit_html = f"""
-        <div class='circuit-box'>
-            <h4 style='margin-top:0; color:#3b82f6;'>⏳ Circuito Diario de Entrenamiento (50 Minutos)</h4>
-            <p style='font-size:0.9em; color:#cbd5e1; margin-bottom:15px;'>El aprendizaje tradicional no funciona. Sigue este circuito inmersivo para forjar fluidez neurolingüística.</p>
-            <ul style='list-style-type: none; padding: 0;'>
-                <li style='margin-bottom:10px;'><b>1️⃣ Inmersión Activa (10 min):</b> Busca en YouTube un video sobre <i>{video_topic}</i> (Harvard Business Review). Pausa cada minuto e intenta repetir lo que entendiste.</li>
-                <li style='margin-bottom:10px;'><b>2️⃣ Shadowing Auditivo (10 min):</b> Ve a la pestaña '🎧 Shadowing', escucha la cadencia y repite en voz alta para romper el acento.</li>
-                <li style='margin-bottom:10px;'><b>3️⃣ AI Combat Lab (10 min):</b> Solicita tu simulación del día al CEO y responde articulando ideas.</li>
-                <li style='margin-bottom:10px;'><b>4️⃣ Conectores & Verbos (10 min):</b> Supera 3 ejercicios de reflejos en las pestañas de Vocabulario.</li>
-                <li style='margin-bottom:0;'><b>5️⃣ La Fragua (10 min):</b> Documenta un logro operativo en formato C-Level.</li>
+        <div class="circuit-box">
+            <h4 style="margin-top:0; color:#3b82f6;">⏳ Tu Circuito de Entrenamiento (45-50 Minutos)</h4>
+            <p style="font-size:0.9em; color:#cbd5e1; margin-bottom:15px;">Completa todas las estaciones para asegurar inmersión total diaria.</p>
+            <ul style="list-style-type: none; padding: 0;">
+                <li style="margin-bottom:10px;"><b>1️⃣ Inmersión Activa (10 min):</b> Busca en YouTube un video sobre <i>{video_topic}</i>. Pausa cada minuto e intenta entender contexto.</li>
+                <li style="margin-bottom:10px;"><b>2️⃣ Shadowing (10 min):</b> Ve a la pestaña, escucha y repite frases esenciales para mejorar fonética.</li>
+                <li style="margin-bottom:10px;"><b>3️⃣ AI Combat Lab (10 min):</b> Pide sugerencias de vocabulario y responde la crisis de <i>{temp[0]}</i>.</li>
+                <li style="margin-bottom:10px;"><b>4️⃣ Reflejos y Conectores (10 min):</b> Supera 3 frases en Verbos y 3 en Conectores.</li>
+                <li style="margin-bottom:0;"><b>5️⃣ La Fragua (5 min):</b> Redacta tu <i>{temp[2]}</i> y fórjalo a nivel VP.</li>
             </ul>
         </div>
         """
-        plan[day] = {"phase": phases[phase_idx], "title": temp[0], "actividad": temp[1], "entregable": temp[2], "circuit": circuit_html}
+        plan[day] = {
+            "phase": phases[phase_idx], "title": temp[0], "actividad": temp[1], "entregable": temp[2], "circuit": circuit_html
+        }
     return plan
 
 NINETY_DAY_PLAN = generate_90_day_plan()
 
-# --- AI API ---
+# --- MOTOR DE IA (GEMINI 3 FLASH PREVIEW) ---
 def call_ai(prompt, api_key):
-    if not api_key: return "⚠️ Error: API Key no configurada en Secrets."
+    if not api_key: return "⚠️ Error: Falta la API Key."
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
-        res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=25)
-        return res.json()['candidates'][0]['content']['parts'][0]['text']
-    except: return "Error de conexión o timeout con la IA."
+        response = requests.post(url, json=payload, timeout=25)
+        if response.status_code == 200:
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
+        return f"Error IA: {response.status_code}"
+    except: return "Error de conexión."
 
-# --- ESTADO CENTRALIZADO ---
+# --- MANEJO DE ESTADO SEGURO (CANDADOS ANTI-CRASH) ---
 if 'screen' not in st.session_state: st.session_state.screen = 'home'
 if 'user_name' not in st.session_state: st.session_state.user_name = ""
-if 'user_area' not in st.session_state: st.session_state.user_area = ["Operaciones & Supply Chain"]
+if 'user_area' not in st.session_state: st.session_state.user_area = ["Operaciones & Supply Chain"] 
 if 'user_position' not in st.session_state: st.session_state.user_position = "Director or Manager"
+if 'english_level' not in st.session_state: st.session_state.english_level = "No Evaluado"
 if 'xp' not in st.session_state: st.session_state.xp = 0
 if 'current_day' not in st.session_state: st.session_state.current_day = 1
 if 'placement_step' not in st.session_state: st.session_state.placement_step = 0
@@ -247,21 +280,27 @@ if 'current_drill' not in st.session_state: st.session_state.current_drill = ran
 if 'current_connector_drill' not in st.session_state: st.session_state.current_connector_drill = random.choice(CONNECTORS_DRILLS)
 if 'selected_roadmap_day' not in st.session_state: st.session_state.selected_roadmap_day = 1
 if 'assistant_suggestions' not in st.session_state: st.session_state.assistant_suggestions = {}
+if 'encyclopedia_result' not in st.session_state: st.session_state.encyclopedia_result = None
+if 'daily_q' not in st.session_state: st.session_state.daily_q = None
 
-# --- SIDEBAR ---
+# --- PANEL LATERAL ---
 with st.sidebar:
-    st.markdown("<h1 style='text-align:center;'>🦅 CONTROL</h1>", unsafe_allow_html=True)
-    if db: st.success("☁️ Nube: ACTIVADA")
-    else: st.warning("⚠️ Modo Local")
+    st.markdown("<h1 style='text-align: center; font-size: 2em;'>🦅 CONTROL</h1>", unsafe_allow_html=True)
+    if db: st.success("☁️ Guardado en la Nube: ACTIVADO")
+    else: st.warning("⚠️ Sin conexión a la base de datos (Modo Local)")
     st.divider()
     
     st.markdown("### 🧭 Navegación")
-    if st.button("🏠 Home", use_container_width=True): st.session_state.screen = 'home'; st.rerun()
+    if st.button("🏠 Home (Inicio)", use_container_width=True):
+        st.session_state.screen = 'home'; st.rerun()
+        
     if st.session_state.get("placement_completed"):
-        if st.button("📊 Diagnóstico", use_container_width=True): st.session_state.screen = 'results'; st.rerun()
-        if st.button("🛡️ War Room", use_container_width=True): st.session_state.screen = 'dashboard'; st.rerun()
+        if st.button("📊 Último Diagnóstico", use_container_width=True):
+            st.session_state.screen = 'results'; st.rerun()
+        if st.button("🛡️ Mi War Room", use_container_width=True):
+            st.session_state.screen = 'dashboard'; st.rerun()
     st.divider()
-    
+
     if st.session_state.user_name:
         areas_str_side = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
         st.write(f"**Líder:** {st.session_state.user_name}")
@@ -269,98 +308,127 @@ with st.sidebar:
         st.write(f"**Track:** {areas_str_side}")
         st.write(f"**Nivel:** {st.session_state.english_level}")
         st.write(f"**XP:** {st.session_state.xp}")
-        if st.button("🔄 Cerrar Sesión"):
-            for k in list(st.session_state.keys()): del st.session_state[k]
-            st.rerun()
+    if st.button("🔄 Reset / Cerrar Sesión"):
+        for k in list(st.session_state.keys()): del st.session_state[k]
+        st.rerun()
 
-# --- FUNCIONES DE ADAPTACIÓN ---
+# --- FUNCIONES ADAPTATIVAS ---
 def get_adaptive_question(areas, diff):
+    areas_list = areas if isinstance(areas, list) else [areas]
     pool = []
-    for a in (areas if isinstance(areas, list) else [areas]):
+    for a in areas_list:
         pool.extend(DYNAMIC_MCQ.get(a, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(diff, []))
+        
     available = [q for q in pool if q['q'] not in st.session_state.used_q_texts]
-    if not available: return None
-    q = copy.deepcopy(random.choice(available))
-    st.session_state.used_q_texts.append(q['q'])
-    correct_opt = q['options'][q['ans']]
-    random.shuffle(q['options'])
-    q['ans'] = q['options'].index(correct_opt)
-    q['diff_label'] = diff
-    return q
+    if not available:
+        for fallback in ["media", "facil", "dificil"]:
+            pool_fallback = []
+            for a in areas_list:
+                pool_fallback.extend(DYNAMIC_MCQ.get(a, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(fallback, []))
+            available = [q for q in pool_fallback if q['q'] not in st.session_state.used_q_texts]
+            if available:
+                diff = fallback
+                break
+    if available:
+        q = copy.deepcopy(random.choice(available))
+        st.session_state.used_q_texts.append(q['q'])
+        correct_opt = q['options'][q['ans']]
+        random.shuffle(q['options'])
+        q['ans'] = q['options'].index(correct_opt)
+        q['diff_label'] = diff
+        return q
+    return None
+
+def adjust_difficulty(is_correct, current_diff):
+    if is_correct: return "dificil" if current_diff == "media" else ("media" if current_diff == "facil" else "dificil")
+    else: return "facil" if current_diff == "media" else ("media" if current_diff == "dificil" else "facil")
 
 def generate_vocabulary_suggestions(context, areas, position):
     areas_str = ", ".join(areas) if isinstance(areas, list) else areas
     prompt = f"""Actúa como Coach Lingüístico para un {position} en {areas_str}.
     El usuario debe hablar sobre: '{context}'.
-    Enséñale por inmersión. Sugiere en INGLÉS:
-    1. 🔗 Conectores Lógicos Naturales (3 opciones, ej. Moreover, Consequently).
-    2. 🚀 Power Verbs de alto impacto corporativo (3 opciones).
+    Enséñale por inmersión. Sugiere estrictamente en INGLÉS:
+    1. 🔗 Logical Connectors (3 opciones, ej. Moreover, Consequently).
+    2. 🚀 Executive Power Verbs (3 opciones).
     Formato Markdown corto, sin introducciones."""
     return call_ai(prompt, API_KEY)
 
-# --- PANTALLAS ---
+# --- ENRUTADOR PRINCIPAL ---
 if st.session_state.screen == 'home':
     st.markdown("<div class='hero-box'><h1>Global Executive Mastery</h1><p>El Simulador C-Level Definitivo | Edición 2025</p></div>", unsafe_allow_html=True)
-    st.info("💡 **Instrucciones:** Selecciona tu perfil con precisión. Nuestra IA cruzará tu **Especialidad** con tu **Posición** para generar un algoritmo de evaluación personalizado. El objetivo no es solo evaluar tu gramática, sino tu instinto de supervivencia corporativa y tu mentalidad financiera.")
+    st.info("💡 **Instrucciones:** Selecciona tu perfil. Nuestra IA cruzará tu **Especialidad** con tu **Posición** para generar un algoritmo de evaluación de Liderazgo.")
     
     col1, _ = st.columns([1, 1])
     with col1:
-        name = st.text_input("Nombre Completo:")
-        position = st.selectbox("Posición Actual / Target (Define rigor de la IA):", ["Director or Manager", "Engineer or Technician"])
-        area = st.multiselect("Especialidades Tácticas (max 3):", list(DYNAMIC_MCQ.keys()), default=["Operaciones & Supply Chain"], max_selections=3)
+        name_input = st.text_input("Ingresa tu Nombre Completo:")
+        position_input = st.selectbox("Posición Actual / Target:", ["Director or Manager", "Engineer or Technician"])
+        area_input = st.multiselect("Especialidades Tácticas (máximo 3):", list(DYNAMIC_MCQ.keys()), default=["Operaciones & Supply Chain"], max_selections=3)
         st.markdown("<br>", unsafe_allow_html=True)
+        
         if st.button("Iniciar Protocolo 🧠"):
-            if name and area:
+            if name_input and len(area_input) > 0:
                 with st.spinner("Buscando expediente en la nube..."):
-                    if load_user_progress(name):
+                    if load_user_progress(name_input):
                         st.success(f"¡Bienvenido de vuelta, {st.session_state.user_name}!")
                         time.sleep(1)
-                        st.rerun()
+                        st.rerun() 
                     else:
-                        st.session_state.user_name = name; st.session_state.user_position = position; st.session_state.user_area = area; st.session_state.screen = 'placement_test'
+                        st.session_state.user_name = name_input
+                        st.session_state.user_position = position_input
+                        st.session_state.user_area = area_input
+                        st.session_state.screen = 'placement_test'
                         st.rerun()
-            else: st.warning("Completa todos los campos.")
+            elif not name_input: st.warning("Por favor, ingresa tu nombre.")
+            elif len(area_input) == 0: st.warning("Selecciona al menos una especialidad.")
 
 elif st.session_state.screen == 'placement_test':
     total_mcq = 10 
-    total_ai = 3
+    total_ai = 3  
     total_steps = total_mcq + total_ai
-    step = st.session_state.placement_step
+    current_step = st.session_state.placement_step
     
     areas_str = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
-    st.progress(step / total_steps)
-    st.subheader(f"Auditoría Táctica: Paso {step+1} de {total_steps}")
-    st.info(f"💡 Perfil cruzado: **{st.session_state.user_position}** en **{areas_str}**. Lee detenidamente; las opciones están diseñadas para poner a prueba tu dominio técnico en inglés, no solo tu traducción.")
+    
+    st.progress(current_step / total_steps)
+    st.subheader(f"Auditoría: Paso {current_step+1} de {total_steps} ({areas_str})")
+    st.info(f"💡 **Perfil:** {st.session_state.user_position}. La dificultad se basa en tu entendimiento técnico del negocio, no solo en la traducción básica.")
 
-    if step < total_mcq:
+    if current_step < total_mcq:
         if st.session_state.current_q is None:
             st.session_state.current_q = get_adaptive_question(st.session_state.user_area, st.session_state.current_diff)
-            st.rerun()
+            st.rerun() 
+            
         q = st.session_state.current_q
-        st.markdown(f"<span class='diff-badge diff-{q['diff_label']}'>NIVEL: {q['diff_label'].upper()}</span>", unsafe_allow_html=True)
+        diff_color = f"diff-{q['diff_label']}"
+        st.markdown(f"<span class='diff-badge {diff_color}'>NIVEL: {q['diff_label'].upper()}</span>", unsafe_allow_html=True)
         st.markdown(f"<div class='executive-card'><h4>{q['q']}</h4></div>", unsafe_allow_html=True)
         for i, opt in enumerate(q['options']):
-            if st.button(opt, key=f"q_{step}_{i}"):
+            if st.button(opt, key=f"btn_{current_step}_{i}"):
                 is_correct = (i == q['ans'])
                 if is_correct: st.session_state.placement_score += 10
-                st.session_state.current_diff = "dificil" if is_correct else "facil"
-                st.session_state.current_q = None; st.session_state.placement_step += 1; st.rerun()
+                st.session_state.current_diff = adjust_difficulty(is_correct, q['diff_label'])
+                st.session_state.current_q = None 
+                st.session_state.placement_step += 1
+                st.rerun()
     else:
-        ai_step = step - total_mcq
+        ai_step = current_step - total_mcq
         if not st.session_state.dynamic_scenarios:
-            with st.spinner("IA generando 3 escenarios ejecutivos en tiempo real basados en tu posición..."):
-                prompt = f"Write exactly 3 tough corporate scenarios asking for action, tailored for a {st.session_state.user_position} expert in {areas_str}. Format: Scenario 1 --- Scenario 2 --- Scenario 3"
+            with st.spinner("Generando escenarios corporativos según tu posición..."):
+                prompt = f"Write exactly 3 tough corporate scenarios asking for action, tailored for a {st.session_state.user_position} in {areas_str}. Format: Scenario 1 --- Scenario 2 --- Scenario 3"
                 res = call_ai(prompt, API_KEY)
                 st.session_state.dynamic_scenarios = res.split('---')
-        st.markdown(f"<div class='executive-card'><b>Situación de Crisis (Responde con Autoridad):</b><br>{st.session_state.dynamic_scenarios[ai_step]}</div>", unsafe_allow_html=True)
+
+        current_scenario = st.session_state.dynamic_scenarios[ai_step] if ai_step < len(st.session_state.dynamic_scenarios) else "Explain a major process failure and your leadership containment action."
+        st.markdown(f"<div class='executive-card'><b>Situación Crítica (Responde con Autoridad):</b><br>{current_scenario}</div>", unsafe_allow_html=True)
         ans = st.text_area("Tu Respuesta en Inglés:")
         st_speech_to_text(key=f"voice_{ai_step}")
-        if st.button("Validar Maniobra"):
-            if len(ans) > 15:
-                st.session_state.placement_ai_responses.append(ans); st.session_state.placement_step += 1
+        if st.button("Validar Respuesta"):
+            if len(ans) > 20:
+                st.session_state.placement_ai_responses.append(ans)
+                st.session_state.placement_step += 1
                 if st.session_state.placement_step >= total_steps: st.session_state.screen = 'finalizing'
                 st.rerun()
-            else: st.warning("Desarrolla más tu respuesta. Un directivo no responde con monosílabos.")
+            else: st.warning("Desarrolla más tu respuesta. Tu posición exige detalle estratégico.")
 
 elif st.session_state.screen == 'finalizing':
     st.markdown("<h3 style='text-align:center;'>Procesando Analíticas de Liderazgo...</h3>", unsafe_allow_html=True)
@@ -368,48 +436,81 @@ elif st.session_state.screen == 'finalizing':
     for percent_complete in range(100):
         time.sleep(0.02)
         my_bar.progress(percent_complete + 1)
-    with st.spinner("Cruzando datos con el perfil C-Level..."):
+        
+    with st.spinner("El Mentor Elite está cruzando tus respuestas con estándares C-Level..."):
         ai_text = "\n".join(st.session_state.placement_ai_responses)
         areas_str = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
-        prompt = f"""Actúa como CEO estricto evaluando a un candidato para {st.session_state.user_position} experto en {areas_str}.
-        Puntaje test: {st.session_state.placement_score}. Respuestas: {ai_text}.
-        Evalúa impacto y fluidez ejecutiva. DEVUELVE ESTE HTML EXACTO:
-        <div class='eval-box'><h3>🏆 NIVEL ASIGNADO: [Elige: C2 - Master, C1 - Executive, B2 - Advanced, B1 - Intermediate]</h3></div>
-        <div class='eval-box'><h3>📊 ANÁLISIS DE FLUIDEZ:</h3><ul><li>[Error de impacto 1]</li><li>[Falta de autoridad 2]</li></ul></div>
-        <div class='eval-box'><h3>💡 TIPS PRO PARA ROL {st.session_state.user_position}:</h3><ul><li>[Tip 1]</li></ul></div>"""
+        
+        prompt = f"""
+        Actúa como un CEO estricto evaluando a un candidato para {st.session_state.user_position} experto en {areas_str}.
+        Puntaje test adaptativo: {st.session_state.placement_score}. Respuestas orales: {ai_text}.
+        Evalúa impacto y nivel de autoridad.
+        DEVUELVE TU RESPUESTA ESTRICTAMENTE EN ESTE FORMATO MARKDOWN EXACTO:
+
+        <div class='eval-box'>
+        <h3>🏆 NIVEL ASIGNADO: [Elige uno: C2 - Master, C1 - Executive, B2 - Advanced, B1 - Intermediate]</h3>
+        </div>
+        
+        <div class='eval-box'>
+        <h3>📊 ANÁLISIS DE FLUIDEZ Y AUTORIDAD:</h3>
+        <ul><li>[Falta de impacto detectada 1]</li><li>[Falta de conectores 2]</li></ul>
+        </div>
+
+        <div class='eval-box'>
+        <h3>💡 TIPS PRO PARA ROL {st.session_state.user_position.upper()}:</h3>
+        <ul><li>[Tip 1 sobre inmersión]</li><li>[Tip 2 sobre estructurar ideas]</li></ul>
+        </div>
+        """
         res = call_ai(prompt, API_KEY)
         st.session_state.placement_eval_detailed = res
         for level in ["C2", "C1", "B2", "B1", "A2"]:
-            if level in res: st.session_state.english_level = f"{level} - Certified"; break
+            if level in res: 
+                st.session_state.english_level = f"{level} - Certified"
+                break
         if st.session_state.english_level == "No Evaluado": st.session_state.english_level = "B2 - Certified"
-        st.session_state.placement_completed = True; save_user_progress(); st.session_state.screen = 'results'; st.rerun()
+        
+        st.session_state.placement_completed = True
+        save_user_progress() 
+        st.session_state.screen = 'results' 
+        st.rerun()
 
 elif st.session_state.screen == 'results':
-    st.markdown("<h1 style='text-align:center;'>Diagnóstico Final Táctico</h1>", unsafe_allow_html=True)
-    st.info("💡 **Tu Reporte VP:** Este documento valida tu estado actual frente a los estándares de las mesas directivas globales. Imprímelo o guárdalo; tu objetivo es destruir estas áreas de oportunidad en los próximos 90 días.")
+    st.markdown("<h1 style='text-align: center; color: #f59e0b;'>Diagnóstico Táctico Completado</h1>", unsafe_allow_html=True)
+    st.info("💡 **Tu Reporte:** Este documento valida tu estado frente a estándares directivos globales.")
+    areas_str = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
+    st.markdown(f"<p style='text-align:center; font-size:1.2em;'>Candidato: <b>{st.session_state.user_name}</b> | Rol: <b>{st.session_state.user_position}</b> | Especialidad: <b>{areas_str}</b></p>", unsafe_allow_html=True)
     st.markdown(st.session_state.placement_eval_detailed, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        components.html("""<button onclick="window.parent.print()" style="width:100%; padding: 12px; margin-bottom: 10px; background: #3b82f6; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">🖨️ Guardar PDF</button>""", height=65)
-        if st.button("Desbloquear Mi War Room ⚔️"): st.session_state.screen = 'dashboard'; st.rerun()
+        components.html("""
+            <button onclick="window.parent.print()" style="width:100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1em; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                🖨️ Guardar Reporte como PDF
+            </button>
+        """, height=65)
+        if st.button("Desbloquear Mi War Room ⚔️"):
+            st.session_state.screen = 'dashboard'; st.rerun()
 
+# --- WAR ROOM ---
 elif st.session_state.screen == 'dashboard':
     st.title(f"🛡️ War Room: {st.session_state.user_name}")
     tabs = st.tabs(["📅 Plan 90 Días", "🎧 Shadowing", "📖 Enciclopedia", "🤖 Combat Lab", "⚔️ Verbos", "🔗 Conectores", "🔥 Fragua"])
     
+    # 1. ROADMAP (90 DÍAS / CIRCUITO 50 MIN)
     with tabs[0]:
-        st.subheader("Tu Calendario Táctico (Circuito Diario de 50 Min)")
-        st.info("💡 **Instrucciones:** Selecciona el día actual. Sigue rigurosamente el circuito paso a paso. La clave para pasar de B1 a C1 en 3 meses es la inmersión constante y repetitiva sin enfocarse en reglas de gramática.")
+        st.subheader("Tu Calendario Táctico (Circuito 50 Min)")
+        st.info("💡 **Instrucciones:** Selecciona el día actual. Completa el circuito rotando por las pestañas. El objetivo de los 90 días es saltar un nivel (ej. B1 a C1).")
         
         st.markdown(f"""
         <div style="background-color: #064e3b; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981; margin-bottom: 20px;">
             <h4 style="margin-top:0; color:#ecfdf5;">📱 Vocabulario Offline de Hoy (Día {st.session_state.selected_roadmap_day})</h4>
-            <p style="margin-bottom:0; color:#d1fae5; font-size:0.9em;">Anótalo en tu celular y oblígate a usarlo en tu próxima junta o correo:</p>
+            <p style="margin-bottom:0; color:#d1fae5; font-size:0.9em;">Anota estas palabras y oblígate a usarlas en tu próximo correo:</p>
             <b style="color:white; font-size:1.1em;">{DAILY_VOCAB[st.session_state.selected_roadmap_day % len(DAILY_VOCAB)]}</b> | 
             <b style="color:white; font-size:1.1em;">{DAILY_VOCAB[(st.session_state.selected_roadmap_day+1) % len(DAILY_VOCAB)]}</b>
         </div>
         """, unsafe_allow_html=True)
-
+        
         cols = st.columns(10)
         for i in range(1, 91):
             with cols[(i-1) % 10]:
@@ -418,13 +519,29 @@ elif st.session_state.screen == 'dashboard':
                     st.session_state.selected_roadmap_day = i; st.rerun()
         
         selected_data = NINETY_DAY_PLAN[st.session_state.selected_roadmap_day]
-        st.markdown(f"<div class='mission-card'><span style='color:#3b82f6; font-weight:900;'>DÍA {st.session_state.selected_roadmap_day} • {selected_data['phase']}</span><h2 style='color:white;'>{selected_data['title']}</h2><hr style='border-color:#334155;'><p><b>🎯 Actividad:</b> {selected_data['actividad']}</p>{selected_data['circuit']}</div>", unsafe_allow_html=True)
-        if st.button("✅ Terminé mi Circuito de 50 Minutos (Avanzar)"):
-            st.session_state.xp += 800; st.session_state.selected_roadmap_day = min(90, st.session_state.selected_roadmap_day + 1); save_user_progress(); st.success("¡Circuito Registrado!"); time.sleep(1); st.rerun()
+        st.markdown(f"""
+            <div class="mission-card">
+                <span style="color: #3b82f6; font-weight: 900; font-size: 1.2em;">DÍA {st.session_state.selected_roadmap_day} • {selected_data['phase']}</span>
+                <h2 style="color: white; margin-top: 5px;">{selected_data['title']}</h2>
+                <hr style="border-color: #334155;">
+                <p><b>🎯 Actividad del Día:</b> {selected_data['actividad']}</p>
+                <p><b>📦 Entregable Final:</b> <span style="color: #10b981;">{selected_data['entregable']}</span></p>
+                {selected_data['circuit']}
+            </div>
+        """, unsafe_allow_html=True)
 
+        if st.button("✅ Terminé mi Circuito de 50 Minutos (Avanzar)"):
+            st.session_state.xp += 800
+            st.session_state.current_day = min(90, st.session_state.selected_roadmap_day + 1)
+            st.session_state.selected_roadmap_day = st.session_state.current_day
+            save_user_progress()
+            st.success("¡Circuito completado con éxito! Fluidez adquirida y guardada en la nube.")
+            time.sleep(1.5); st.rerun()
+
+    # 2. SHADOWING (ENTRENAMIENTO AUDITIVO)
     with tabs[1]:
         st.subheader("🎧 Entrenamiento Auditivo (Shadowing)")
-        st.info("💡 **El Método:** Lee la frase, presiona el botón para escuchar la pronunciación nativa, e inmediatamente repítela en voz alta intentando copiar la entonación exacta. Esto elimina el acento y forja memoria muscular verbal.")
+        st.info("💡 **El Método:** Lee la frase, presiona el botón para escuchar la pronunciación nativa, e inmediatamente repítela en voz alta intentando copiar la entonación exacta. Esto forja memoria muscular verbal.")
         
         phrases_to_shadow = [
             "Furthermore, we must deploy immediate containment actions.",
@@ -437,85 +554,94 @@ elif st.session_state.screen == 'dashboard':
             if st.button("🔊 Escuchar y Repetir", key=f"shadow_{idx}"):
                 st_text_to_speech(phrase)
 
+    # 3. ENCICLOPEDIA VP
     with tabs[2]:
-        st.subheader("Enciclopedia C-Level")
-        st.info("💡 **Instrucciones:** Busca términos técnicos. La IA te mostrará la diferencia radical entre cómo un Junior explica el concepto y cómo un VP lo articula en una junta.")
+        st.subheader("Enciclopedia de Jerga Corporativa")
+        st.info("💡 **Instrucciones:** Busca términos técnicos. La IA te mostrará la diferencia entre cómo un Junior lo explica y cómo un VP lo articula en una junta. Todo generado 100% en inglés.")
         search_term = st.text_input("🔍 Buscar término (ej. Kanban, EBITDA):", key="search_term_input")
-        if st.button("Buscar en Base C-Level", type="primary"):
+        if st.button("Buscar en la Base de Datos C-Level", type="primary"):
             if search_term:
                 with st.spinner(f"Analizando '{search_term}'..."):
-                    prompt_enc = f"""Actúa como diccionario corporativo para la alta dirección. Término: '{search_term}'.
-                    CRITICAL INSTRUCTION: Generate the ENTIRE response strictly in ENGLISH. Do not use Spanish.
+                    prompt_enc = f"""Actúa como diccionario corporativo C-Level. Término: '{search_term}'.
+                    CRITICAL INSTRUCTION: All the generated content MUST be entirely in ENGLISH.
                     Devuelve HTML:
                     <div style='background-color:#0f172a; padding:25px; border-left:6px solid #f59e0b;'>
                     <h3 style='color:white; margin-top:0;'>📖 {search_term.upper()}</h3>
-                    <p style='color:#cbd5e1;'><b>Definition:</b> [Clear, executive English definition]</p>
+                    <p style='color:#cbd5e1;'><b>Definition:</b> [Clear Executive Definition in English]</p>
                     <hr style='border-color:#334155;'>
-                    <p style='color:#f87171;'><b>🚫 Junior phrasing:</b> <i>"[Weak English phrase]"</i></p>
-                    <p style='color:#34d399;'><b>✅ VP phrasing:</b> <i>"[Strong English phrase using Power Verbs and Connectors]"</i></p>
+                    <p style='color:#f87171;'><b>🚫 Junior phrasing:</b> <i>"[Weak phrase without connectors]"</i></p>
+                    <p style='color:#34d399;'><b>✅ VP phrasing:</b> <i>"[Strong phrase using a logical connector and Power Verb]"</i></p>
                     </div>"""
                     st.session_state.encyclopedia_result = call_ai(prompt_enc, API_KEY)
-        if st.session_state.encyclopedia_result:
-            st.markdown(st.session_state.encyclopedia_result, unsafe_allow_html=True)
-            if st.button("Limpiar"): st.session_state.encyclopedia_result = None; st.rerun()
 
+        if st.session_state.get('encyclopedia_result'):
+            st.markdown(st.session_state.encyclopedia_result, unsafe_allow_html=True)
+            if st.button("Limpiar Búsqueda"):
+                st.session_state.encyclopedia_result = None; st.rerun()
+
+    # 4. AI COMBAT LAB
     with tabs[3]:
-        st.subheader("AI Combat Lab")
-        st.info("💡 **Instrucciones:** El CEO (IA) te hará una pregunta agresiva sobre la misión de hoy considerando tu nivel y puesto. Pide sugerencias ANTES de responder y utiliza conectores para blindar tu respuesta.")
         mission = NINETY_DAY_PLAN[st.session_state.selected_roadmap_day]
+        st.subheader(f"Combat Lab: {mission['title']}")
+        st.info("💡 **Instrucciones:** Pídele al Asistente sugerencias de conectores ANTES de contestarle al CEO. Tu respuesta debe mostrar impacto.")
+        
         if st.button("🎙️ Solicitar Pregunta del CEO"):
             with st.spinner("CEO conectándose..."):
                 areas_str = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
                 st.session_state.daily_q = call_ai(f"Act as strict CEO. Ask a challenging question about '{mission['actividad']}' to a {st.session_state.user_position} in {areas_str}. Level: {st.session_state.english_level}.", API_KEY)
                 st_text_to_speech(st.session_state.daily_q)
-        if 'daily_q' in st.session_state:
+        
+        if st.session_state.get('daily_q'):
             st.warning(st.session_state.daily_q)
             
-            # Botón de ayuda visible
-            with st.expander("🤖 Asistente de Inmersión (Úsalo antes de responder)"):
-                st.write("Genera bloques lógicos en inglés para armar tu respuesta sin pensar en gramática:")
-                if st.button("💡 Dame Conectores y Power Verbs para esta crisis"):
-                    with st.spinner("Analizando contexto..."):
+            with st.expander("🤖 Asistente Estratégico (Sugerir vocabulario)"):
+                if st.button("💡 Dame Conectores y Power Verbs para esta crisis", key="btn_a_combat"):
+                    with st.spinner("Analizando..."):
                         st.session_state.assistant_suggestions['combat'] = generate_vocabulary_suggestions(st.session_state.daily_q, st.session_state.user_area, st.session_state.user_position)
                 if st.session_state.assistant_suggestions.get('combat'):
                     st.markdown(f"<div class='eval-box'>{st.session_state.assistant_suggestions['combat']}</div>", unsafe_allow_html=True)
-
-            ans = st.text_area("Ejecuta tu respuesta:")
+            
+            ans = st.text_area("Tu Respuesta Ejecutiva (Únelo con conectores):")
             st_speech_to_text(key="combat_voice")
-            if st.button("Auditar Impacto"):
-                with st.spinner("Auditando..."):
-                    res = call_ai(f"Evaluate: {ans}. SPANISH. 1. SCORE 2. FEEDBACK (Uso de conectores) 3. VERSIÓN BOARDROOM.", API_KEY)
-                    st.markdown(f"<div class='level-box'>{res}</div>", unsafe_allow_html=True); st.session_state.xp += 100; save_user_progress()
+            if st.button("Auditar Respuesta"):
+                with st.spinner("Auditando fluidez..."):
+                    res = call_ai(f"Evaluate: {ans}. SPANISH. 1. SCORE 2. FEEDBACK (Enfocado en impacto y uso de conectores) 3. VERSIÓN BOARDROOM.", API_KEY)
+                    st.markdown(f"<div class='level-box'>{res}</div>", unsafe_allow_html=True)
+                    st.session_state.xp += 100; save_user_progress()
 
+    # 5. POWER VERBS
     with tabs[4]:
         st.subheader("Combate de Reflejos: Power Verbs")
-        st.info("💡 **Instrucciones:** Erradica tu vocabulario básico. Sustituye la frase del Junior por el 'Power Verb' que un directivo utilizaría.")
+        st.info("💡 **Instrucciones:** Sustituye la frase del Junior por el verbo avanzado oficial. Haz 3 o 4 por circuito diario.")
         drill = st.session_state.current_drill
-        st.markdown(f"<div class='executive-card'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
-        pv_ans = st.text_input("Sustituye por el verbo VP:")
+        st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
+        
+        pv_ans = st.text_input("Sustituye por el verbo de la versión ejecutiva:")
         if st.button("Validar Impacto 🎯"):
-            if drill[1].lower() in pv_ans.lower() or any(w in pv_ans.lower() for w in drill[1].split() if len(w)>4):
-                st.success(f"¡Destruido! Versión oficial: '{drill[1]}'"); time.sleep(1.5); st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS); st.rerun()
-            else: st.error(f"Demasiado pasivo. Tip: Usa palabras de: '{drill[1]}'")
+            if drill[1].lower() in pv_ans.lower() or any(word in pv_ans.lower() for word in drill[1].split() if len(word)>4):
+                st.success(f"¡Excelente! La frase completa es: '{drill[1]}'"); time.sleep(1.5); st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS); st.rerun()
+            else: st.error(f"Sigue siendo básico. Usa palabras de: '{drill[1]}'")
 
+    # 6. CONECTORES LÓGICOS
     with tabs[5]:
-        st.subheader("Simulador de Conectores")
-        st.info("💡 **Instrucciones:** No traduzcas; conecta. Une las dos oraciones utilizando un conector lógico avanzado (Consequently, Therefore, Furthermore).")
+        st.subheader("🔗 Simulador de Conectores Lógicos")
+        st.info("💡 **Instrucciones:** Une las dos oraciones utilizando un conector lógico avanzado (Consequently, Therefore). Haz 3 o 4 por circuito.")
         c_drill = st.session_state.current_connector_drill
         st.markdown(f"<div class='executive-card' style='border-color:#34d399;'><span>Tipo: {c_drill['type']}</span><h3 style='color:white;'>\"{c_drill['junior']}\"</h3></div>", unsafe_allow_html=True)
         conn_ans = st.text_area("Reescribe uniendo fluidamente:")
         if st.button("Evaluar Fluidez 🔗"):
-            if any(t.lower() in conn_ans.lower() for t in c_drill['target']):
-                st.success("¡Flujo Perfecto!"); time.sleep(1.5); st.session_state.current_connector_drill = random.choice(CONNECTORS_DRILLS); st.rerun()
-            else: st.error(f"Usa un conector como: {c_drill['target'][0]} o {c_drill['target'][1]}.")
+            if any(target.lower() in conn_ans.lower() for target in c_drill['target']):
+                st.success("¡Perfecto! Fluidez nivel VP."); time.sleep(1.5); st.session_state.current_connector_drill = random.choice(CONNECTORS_DRILLS); st.rerun()
+            else: st.error(f"Te faltó el conector correcto: {c_drill['target'][0]} o {c_drill['target'][1]}.")
 
+    # 7. THE FORGE
     with tabs[6]:
         st.subheader("La Fragua: Forja de Logros")
-        st.info("💡 **Instrucciones:** Ingresa un logro de piso o técnico. La IA lo transformará en una declaración de impacto orientada a ahorros y rentabilidad corporativa.")
-        draft = st.text_area("Ingresa un logro básico (ej: Reparamos la máquina y ganamos tiempo):")
-        if st.button("⚒️ Forjar a Nivel VP"):
+        st.info("💡 **Instrucciones:** Ingresa un logro básico. La IA lo transformará en una declaración orientada a EBITDA.")
+        draft = st.text_area("Ingresa un logro básico (ej: Reduje el tiempo de entrega 10%):")
+        if st.button("⚒️ Forjar Logro VP"):
             with st.spinner("Forjando..."):
-                res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA using natural logical connectors. Pro Tip in Spanish: {draft}", API_KEY)
+                res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA. Pro Tip in Spanish: {draft}", API_KEY)
                 st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
 
 st.divider()
