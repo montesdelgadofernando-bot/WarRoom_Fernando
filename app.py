@@ -441,7 +441,7 @@ def generate_vocabulary_suggestions(context, areas, position):
 
 # --- ENRUTADOR PRINCIPAL ---
 if st.session_state.screen == 'home':
-    st.markdown("<div class='hero-box'><h1>Global Executive Mastery</h1><p>El Simulador C-Level Definitivo | Edición 2026</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-box'><h1>Intelligent Personal Trainer (AI-powered engineering)</h1><p>El Simulador C-Level Definitivo | Edición 2026</p></div>", unsafe_allow_html=True)
     st.info("💡 **Instrucciones:** Selecciona tu perfil. Nuestra IA cruzará tu **Especialidad** con tu **Posición** para generar un algoritmo de evaluación de Liderazgo.")
     
     col1, _ = st.columns([1, 1])
@@ -833,6 +833,7 @@ elif st.session_state.screen == 'dashboard':
 
 st.divider()
 st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | QMS 4.0 | LSS + IA | UX/UI Design | Adquisición Natural C-Level | Edición 2026 - V2.0")
+
 
 
 
