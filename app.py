@@ -16,7 +16,7 @@ except ImportError:
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Global Executive Mastery", 
+    page_title="Intelligent Personal Trainer (AI-powered engineering)", 
     page_icon="💼", 
     layout="wide",
     initial_sidebar_state="expanded"
@@ -833,5 +833,6 @@ elif st.session_state.screen == 'dashboard':
 
 st.divider()
 st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | QMS 4.0 | LSS + IA | UX/UI Design | Adquisición Natural C-Level | Edición 2026")
+
 
 
