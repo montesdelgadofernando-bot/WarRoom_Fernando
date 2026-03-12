@@ -3,6 +3,7 @@ import requests
 import time
 import random
 import streamlit.components.v1 as components
+from google.cloud import firestore
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
@@ -12,146 +13,153 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- CONFIGURACIÓN DE PERSISTENCIA (FIRESTORE) ---
+# Extraemos el ID de la aplicación de los secretos del entorno
+app_id = getattr(st.secrets, "__app_id", "war-room-executive-fernando")
+
+def get_db():
+    try:
+        # En Streamlit Cloud, esto detecta las credenciales automáticamente
+        return firestore.Client()
+    except Exception:
+        return None
+
+db = get_db()
+
+def save_user_progress():
+    """Guarda el estado actual del usuario en la base de datos de la nube."""
+    if not db or not st.session_state.get("user_name"):
+        return
+    
+    user_id = st.session_state.user_name.lower().replace(" ", "_")
+    # Regla 1: Ruta estricta para datos públicos del artefacto
+    # Path: /artifacts/{appId}/public/data/users/{userId}
+    doc_ref = db.collection("artifacts").document(app_id).collection("public").document("data").collection("users").document(user_id)
+    
+    data = {
+        "user_name": st.session_state.user_name,
+        "user_area": st.session_state.user_area,
+        "english_level": st.session_state.english_level,
+        "xp": st.session_state.xp,
+        "current_day": st.session_state.current_day,
+        "placement_completed": st.session_state.get("placement_completed", False),
+        "placement_eval_detailed": st.session_state.get("placement_eval_detailed", ""),
+        "last_update": firestore.SERVER_TIMESTAMP
+    }
+    doc_ref.set(data)
+
+def load_user_progress(name):
+    """Busca en la nube si el usuario ya tiene un historial guardado."""
+    if not db:
+        return False
+    
+    user_id = name.lower().replace(" ", "_")
+    doc_ref = db.collection("artifacts").document(app_id).collection("public").document("data").collection("users").document(user_id)
+    doc = doc_ref.get()
+    
+    if doc.exists:
+        u = doc.to_dict()
+        st.session_state.user_name = u["user_name"]
+        st.session_state.user_area = u["user_area"]
+        st.session_state.english_level = u["english_level"]
+        st.session_state.xp = u["xp"]
+        st.session_state.current_day = u["current_day"]
+        st.session_state.placement_completed = u.get("placement_completed", False)
+        st.session_state.placement_eval_detailed = u.get("placement_eval_detailed", "")
+        return True
+    return False
+
 # --- PSICOLOGÍA DE COLOR Y DISEÑO (CSS) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0f172a; color: #f8fafc; }
-    
-    /* Botones de Acción (Ámbar) */
     .stButton>button {
         width: 100%; border-radius: 12px; height: 3.5em; 
         background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
-        color: #0f172a !important; font-weight: 900; font-size: 1.1em;
-        border: none; transition: 0.3s;
+        color: #0f172a !important; font-weight: 900; font-size: 1.1em; border: none;
     }
     .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4); }
-    
-    /* Tarjetas Ejecutivas */
-    .hero-box {
-        background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
-        padding: 40px; border-radius: 20px; text-align: center;
-        border: 1px solid #3b82f6; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        margin-bottom: 30px;
-    }
     .executive-card {
-        background-color: #1e293b; padding: 30px; border-radius: 15px;
-        border-left: 6px solid #3b82f6; margin-bottom: 20px;
+        background-color: #1e293b; padding: 30px; border-radius: 15px; border-left: 6px solid #3b82f6; margin-bottom: 20px;
     }
     .level-box {
-        background-color: #064e3b; padding: 30px; border-radius: 15px;
-        border-left: 6px solid #10b981; margin-top: 15px; color: #ecfdf5; text-align: center;
+        background-color: #064e3b; padding: 30px; border-radius: 15px; border-left: 6px solid #10b981; color: #ecfdf5; text-align: center;
     }
     .day-card {
-        background-color: #1e293b; padding: 20px; border-radius: 15px;
-        border: 2px solid #334155; margin-bottom: 15px; transition: 0.3s;
+        background-color: #1e293b; padding: 20px; border-radius: 15px; border: 2px solid #334155; margin-bottom: 15px;
     }
     .day-active { border-color: #f59e0b; background-color: #451a03; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
-    
-    /* Badges */
-    .badge-tech { background-color: #1e40af; color: #dbeafe; padding: 4px 10px; border-radius: 8px; font-weight: bold; }
-    .badge-ops { background-color: #92400e; color: #fef3c7; padding: 4px 10px; border-radius: 8px; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- COMPONENTE DE VOZ (JavaScript Bridge) ---
+# --- COMPONENTES MULTIMEDIA ---
 def st_speech_to_text(key):
     script = """
     <script>
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'en-US';
     recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    function startDictation() {
-        recognition.start();
-        document.getElementById('mic-status').innerText = '🔴 Listening...';
-    }
-
+    function startDictation() { recognition.start(); }
     recognition.onresult = (event) => {
-        const speechToText = event.results[0][0].transcript;
-        window.parent.postMessage({
-            type: 'streamlit:setComponentValue',
-            value: speechToText,
-            key: '""" + key + """'
-        }, '*');
-        document.getElementById('mic-status').innerText = '✅ Success!';
-    };
-
-    recognition.onerror = () => {
-        document.getElementById('mic-status').innerText = '⚠️ Mic Error';
+        const text = event.results[0][0].transcript;
+        window.parent.postMessage({type: 'streamlit:setComponentValue', value: text, key: '""" + key + """'}, '*');
     };
     </script>
-    <div style="text-align: center;">
-        <button onclick="startDictation()" style="background: #f59e0b; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">🎙️ Click to Speak (English)</button>
-        <p id="mic-status" style="color: #94a3b8; font-size: 0.8em; margin-top: 5px;">Ready</p>
-    </div>
+    <div style="text-align: center;"><button onclick="startDictation()" style="background: #f59e0b; padding: 10px 20px; border-radius: 8px; font-weight: bold;">🎙️ Click to Speak (English)</button></div>
     """
-    return components.html(script, height=100)
+    return components.html(script, height=80)
 
 def st_text_to_speech(text):
     if text:
-        clean_text = text.replace('"', '\\"').replace('\n', ' ')
-        script = f"""
-        <script>
-        const msg = new SpeechSynthesisUtterance("{clean_text}");
-        msg.lang = 'en-US';
-        msg.rate = 0.9;
-        window.speechSynthesis.speak(msg);
-        </script>
-        """
-        components.html(script, height=0)
+        clean = text.replace('"', '\\"').replace('\n', ' ')
+        components.html(f"<script>const m=new SpeechSynthesisUtterance('{clean}');m.lang='en-US';window.speechSynthesis.speak(m);</script>", height=0)
 
-# --- BÓVEDA DE SEGURIDAD ---
-try:
-    API_KEY = st.secrets["GEMINI_API_KEY"]
-except Exception:
-    API_KEY = ""
+# --- BÓVEDA DE API ---
+try: API_KEY = st.secrets["GEMINI_API_KEY"]
+except: API_KEY = ""
 
-# --- BANCO DE PREGUNTAS MCQ COMPLEJAS (RESTABLECIDO) ---
+# --- BANCOS DE PREGUNTAS (TODAS LAS ESPECIALIDADES RESTAURADAS) ---
 DYNAMIC_MCQ = {
+    "Logística": [
+        {"q": "The 3PL provider reports a massive backlog at the port. How do you mitigate the EBITDA impact?", "options": ["Wait for customs.", "Spearhead an expedited multi-modal route.", "Tell board it's luck.", "Cancel shipments."], "ans": 1},
+        {"q": "Warehouse utilization is at 98%. Recommendation?", "options": ["Rent more space.", "Implement lean inventory / increase turns.", "Stop receiving.", "Stack higher."], "ans": 1},
+        {"q": "Last-mile spiked 20%. Strategic move?", "options": ["Reduce deliveries.", "Leverage route optimization algorithms.", "Stop distant deliveries.", "Ask for double payment."], "ans": 1}
+    ],
+    "Producción": [
+        {"q": "OEE dropped to 60%. Action?", "options": ["Tell team to work harder.", "Spearhead Gemba-focused audit to identify downtime.", "Lower target.", "Buy new machine."], "ans": 1},
+        {"q": "Scrap surge reported. Board update?", "options": ["Bad material.", "Deployed proactive countermeasure to stabilize process.", "Look tomorrow.", "Fire manager."], "ans": 1},
+        {"q": "Throughput limited by bottleneck?", "options": ["Ignore it.", "Perform Takt-time analysis to balance capacity.", "Max speed everywhere.", "Increase headcount."], "ans": 1}
+    ],
+    "Ingeniería": [
+        {"q": "Technical deviation requested?", "options": ["Approve immediately.", "Conduct risk-based assessment for spec compliance.", "Say no.", "Ask manager."], "ans": 1},
+        {"q": "Project over budget justification?", "options": ["Expensive engineers.", "Shifted scope to leverage higher ROI via advanced materials.", "Math error.", "Spend less later."], "ans": 1},
+        {"q": "Tolerance stack-up issue in CAD leads to:", "options": ["Prettier design.", "Potential non-conformances impacting throughput.", "Cheaper manufacturing.", "Nothing."], "ans": 1}
+    ],
+    "Project Manager": [
+        {"q": "Major scope change request mid-project?", "options": ["Do it now.", "Assess impact on critical path and EBITDA before alignment.", "Ignore.", "Too late."], "ans": 1},
+        {"q": "Critical Path means:", "options": ["Dangerous road.", "Any delay impacts the final delivery date.", "Almost finished.", "Small budget."], "ans": 1},
+        {"q": "10% budget overrun report?", "options": ["Spent too much.", "Identifying capital reallocation to mitigate variance.", "Slow team.", "Supplier fault."], "ans": 1}
+    ],
     "Operaciones & Supply Chain": [
-        {"q": "A critical tier-1 supplier announces a 25% increase in lead time. How do you report the impact to the board?", "options": ["Wait for the material and report later.", "Report a lead-time disruption and its projected impact on throughput and OEE.", "Ask the supplier to work overtime.", "Increase safety stock without analyzing financial carrying costs."], "ans": 1},
-        {"q": "EBITDA is shrinking due to rising multi-modal freight costs. What is your move?", "options": ["Reduce the logistics headcount immediately.", "Orchestrate a multi-modal strategy focused on IRA and cost optimization.", "Increase prices without market analysis.", "Stop all shipments until rates drop."], "ans": 1},
-        {"q": "In an S&OP meeting, there is a major gap between demand and capacity. You should:", "options": ["Ignore it and produce at max capacity.", "Align demand and supply plans by prioritizing high-margin SKUs.", "Tell sales to stop taking orders.", "Wait for next month's forecast."], "ans": 1},
-        {"q": "Your inventory carrying cost is 30%. What is the executive solution?", "options": ["Dispose of old inventory immediately.", "Implement a pull system backed by predictive modeling to reduce buffers.", "Rent a cheaper warehouse.", "Stop procurement for a month."], "ans": 1},
-        {"q": "Which phrase demonstrates highest authority in a P&L update?", "options": ["I helped reduce costs last quarter.", "I spearheaded a strategic initiative delivering $274k in hard savings.", "I was responsible for the cost cutting plan.", "The team reduced costs under my supervision."], "ans": 1},
-        {"q": "A bottleneck is impacting 15% of your throughput. Your first step is:", "options": ["Hire more operators.", "Perform a Takt-time analysis to balance the flow and maximize OEE.", "Increase machine speed.", "Report a technical breakdown."], "ans": 1}
+        {"q": "Tier-1 supplier delay report?", "options": ["Wait.", "Report lead-time disruption and OEE impact.", "Work overtime.", "Increase stock."], "ans": 1},
+        {"q": "EBITDA shrinking due to rising costs?", "options": ["Cut staff.", "Orchestrate multi-modal strategy for cost optimization.", "Increase prices.", "Stop shipments."], "ans": 1},
+        {"q": "Inventory carrying cost 30%?", "options": ["Dispose stock.", "Implement pull system backed by predictive modeling.", "Cheap warehouse.", "Stop buying."], "ans": 1}
     ],
     "Calidad & Lean Manufacturing": [
-        {"q": "An IATF 16949 audit detects a systemic failure in RCA. Your professional response is:", "options": ["We will fix it by next week.", "We have deployed immediate containment and are initiating a robust 8D report.", "The auditor misunderstood our process.", "We will retrain all operators immediately."], "ans": 1},
-        {"q": "Your process Cpk is 0.82. What does this communicate to a global stakeholder?", "options": ["The process is stable but slow.", "The process is incapable of meeting specifications and requires stabilization.", "The product cost is too high.", "The machine needs a new operator."], "ans": 1},
-        {"q": "A major non-conformance is found in the design phase. Which tool identifies it?", "options": ["A basic checklist.", "A cross-functional FMEA (Failure Mode and Effects Analysis).", "A customer survey.", "A post-production audit."], "ans": 1},
-        {"q": "How do you explain 'Muda' to a CFO focusing on financial impact?", "options": ["It means we have too much trash.", "It represents non-value-added activities impacting EBITDA and cycle time.", "It is a Japanese word for cleanliness.", "It means we need more robots."], "ans": 1},
-        {"q": "What is the most executive way to describe 'Poke-Yoke'?", "options": ["Fixing errors manually.", "Implementing error-proofing devices to ensure zero-defect manufacturing.", "Double-checking every part.", "Buying high-quality tools."], "ans": 1},
-        {"q": "A 'Gemba Walk' is primarily used by leaders to:", "options": ["Walk around for exercise.", "Observe the actual place of work to identify improvement opportunities.", "Check if people are working hard.", "Talk to the staff about their personal lives."], "ans": 1}
+        {"q": "IATF audit failure response?", "options": ["Fix next week.", "Deployed immediate containment and initiating 8D.", "Auditor error.", "Retrain staff."], "ans": 1},
+        {"q": "Cpk 0.82 communication?", "options": ["Stable.", "Incapable of meeting specs; stabilization required.", "High cost.", "New operator."], "ans": 1},
+        {"q": "FMEA tool goal?", "options": ["Checklist.", "Identify failure modes before they occur.", "Survey.", "Post-audit."], "ans": 1}
     ],
     "Data Science & SQL": [
-        {"q": "The board asks for a projection of failure rates. You should offer:", "options": ["A guess based on last year.", "A predictive model leveraged through BigQuery and SQL analytics.", "A spreadsheet with old data.", "A chart showing previous errors."], "ans": 1},
-        {"q": "A 'JOIN' operation in SQL is failing due to data integrity. You say:", "options": ["The tables don't like each other.", "We are experiencing a relational mismatch that requires data cleansing.", "The computer is slow.", "We need to delete the data."], "ans": 1},
-        {"q": "How do you justify a 'Big Data' investment to a non-technical CEO?", "options": ["It makes us look modern.", "It allows us to extract actionable insights to drive profitability.", "It stores more files than Excel.", "It is faster than our current server."], "ans": 1},
-        {"q": "What is a 'Primary Key' in terms of business impact?", "options": ["A password to enter the office.", "A unique identifier ensuring data accuracy and reporting reliability.", "The main computer in the room.", "A set of rules for the team."], "ans": 1},
-        {"q": "When a dashboard shows a KPI in red, your executive response is:", "options": ["I will fix the chart.", "I am analyzing the root cause to deploy a corrective measure.", "It's probably a data error.", "We will look at it next week."], "ans": 1},
-        {"q": "Machine Learning is best described to a VP as:", "options": ["Robots doing human work.", "Systems that leverage data patterns to optimize decision-making.", "A fancy type of calculator.", "Automatic coding."], "ans": 1}
-    ],
-    "Ingeniería de Producto": [
-        {"q": "A BOM error is discovered after production started. You report:", "options": ["We made a small mistake.", "A critical BOM misalignment was identified; initiating a technical revision.", "We will change it later.", "The design team is busy."], "ans": 1},
-        {"q": "What is 'DFM' in a cost-optimization meeting?", "options": ["Designing for Money.", "Design for Manufacturing to reduce complexity and OPEX.", "Doing Fine Models.", "Data for Management."], "ans": 1},
-        {"q": "A prototype fails a stress test. Your high-level report says:", "options": ["The part broke.", "The component experienced a structural failure under specification limits.", "We need better material.", "The test was too hard."], "ans": 1},
-        {"q": "Which term describes 'Tolerance' in an executive summary?", "options": ["How much we can stand a problem.", "The allowable variation in a physical dimension to ensure fitment.", "The price range of a part.", "The time we have to finish."], "ans": 1},
-        {"q": "Iterative design is used to:", "options": ["Make things slowly.", "Continuously refine a product based on data and feedback.", "Copy other designs.", "Save money on designers."], "ans": 1},
-        {"q": "FEA stands for a method that:", "options": ["Finds Every Atom.", "Finite Element Analysis to predict how parts react to forces.", "Fast Engineering Action.", "Future Entry Assessment."], "ans": 1}
+        {"q": "Failure rate projection method?", "options": ["Guess.", "Predictive model leveraged via BigQuery analytics.", "Spreadsheet.", "Old chart."], "ans": 1},
+        {"q": "Machine Learning description for VP?", "options": ["Robots.", "Systems leveraging patterns to optimize decision-making.", "Calculator.", "Auto-coding."], "ans": 1}
     ],
     "Otra": [
-        {"q": "Which phrase demonstrates highest authority?", "options": ["I helped with the project.", "I spearheaded the strategic initiative.", "I did the work.", "I was part of the group."], "ans": 1},
-        {"q": "Professional communication should always be:", "options": ["Extremely long.", "Concise and impact-oriented.", "Casual and funny.", "Detailed and technical only."], "ans": 1},
-        {"q": "What is a 'KPI'?", "options": ["Key Performance Indicator.", "King Price Item.", "Knowledge Part Index.", "Keep People Informed."], "ans": 0},
-        {"q": "An 'Outcome' is better defined as:", "options": ["The start of something.", "A result or consequence of an action.", "A bill to pay.", "A meeting."], "ans": 1},
-        {"q": "Stakeholder alignment means:", "options": ["Ignoring people.", "Ensuring all parties agree on the strategic goal.", "Hiring new staff.", "Selling parts."], "ans": 1},
-        {"q": "EBITDA is a measure of:", "options": ["Employee happiness.", "Operational profitability.", "Market share.", "Total debt."], "ans": 1}
+        {"q": "Highest authority phrase?", "options": ["Helped.", "Spearheaded strategic initiative.", "Did work.", "Was part of."], "ans": 1}
     ]
 }
 
-# --- BASE DE CONOCIMIENTO (RESTABLECIDA) ---
+# --- KNOWLEDGE BASE ---
 THIRTY_DAY_PLAN = [
     {"day": 1, "phase": "Cimientos", "title": "El Pitch de Impacto (EBITDA)", "focus": "Cómo presentar tu valor financiero y ahorros duros."},
     {"day": 2, "phase": "Defensa", "title": "Auditorías Globales", "focus": "Contención, RCA, IATF 16949 y VDA 6.3."},
@@ -173,64 +181,69 @@ POWER_VERBS_DRILLS = [
 # --- MOTOR DE IA ---
 def call_ai(prompt, api_key):
     if not api_key: return "⚠️ API Key missing."
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
         response = requests.post(url, json=payload, timeout=20)
-        return response.json()['candidates'][0]['content']['parts'][0]['text'] if response.status_code == 200 else f"Error: {response.status_code}"
+        return response.json()['candidates'][0]['content']['parts'][0]['text']
     except: return "Connection error."
 
 # --- MANEJO DE ESTADO ---
 if 'screen' not in st.session_state: st.session_state.screen = 'home'
 if 'user_name' not in st.session_state: st.session_state.user_name = ""
-if 'user_area' not in st.session_state: st.session_state.user_area = "Operaciones & Supply Chain"
+if 'user_area' not in st.session_state: st.session_state.user_area = "Logística"
 if 'english_level' not in st.session_state: st.session_state.english_level = "No Evaluado"
+if 'xp' not in st.session_state: st.session_state.xp = 0
+if 'current_day' not in st.session_state: st.session_state.current_day = 1
 if 'placement_step' not in st.session_state: st.session_state.placement_step = 0
 if 'placement_score' not in st.session_state: st.session_state.placement_score = 0
 if 'placement_ai_responses' not in st.session_state: st.session_state.placement_ai_responses = []
 if 'dynamic_scenarios' not in st.session_state: st.session_state.dynamic_scenarios = []
-if 'xp' not in st.session_state: st.session_state.xp = 0
-if 'current_day' not in st.session_state: st.session_state.current_day = 1
-if 'current_drill' not in st.session_state: st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
 
 # --- PANEL LATERAL ---
 with st.sidebar:
-    st.markdown("<h1 style='text-align: center; font-size: 3em;'>⚙️</h1>", unsafe_allow_html=True)
-    st.title("Executive Control")
-    if not API_KEY: st.error("🔒 Bóveda Vacía")
-    else: st.success("🔒 Conexión Segura")
+    st.markdown("<h1 style='text-align: center; font-size: 2em;'>🦅 CONTROL</h1>", unsafe_allow_html=True)
+    if db: st.success("☁️ Guardado en la Nube: ACTIVADO")
+    else: st.warning("⚠️ Sin conexión a la base de datos")
     st.divider()
     if st.session_state.user_name:
         st.write(f"**Líder:** {st.session_state.user_name}")
-        st.markdown(f"**Nivel:** `<span style='color:#f59e0b; font-weight:bold;'>{st.session_state.english_level}</span>`")
+        st.write(f"**Nivel:** {st.session_state.english_level}")
         st.write(f"**XP:** {st.session_state.xp}")
-    if st.button("🔄 Reset Protocol"):
-        for key in list(st.session_state.keys()): del st.session_state[key]
+    if st.button("🔄 Reset / Cerrar Sesión"):
+        for k in list(st.session_state.keys()): del st.session_state[k]
         st.rerun()
 
-# --- FLUJO PRINCIPAL ---
+# --- FLUJO ---
 
-if st.session_state.english_level == "No Evaluado":
-    # 1. HOME
+if not st.session_state.get("placement_completed"):
+    # 1. INGRESO (PERSISTENTE)
     if st.session_state.screen == 'home':
-        st.markdown("""
-            <div class="hero-box">
-                <h1>Executive Mastery Protocol</h1>
-                <p>Auditoría de 16 etapas iniciada. Selecciona tu especialidad para activar el simulador.</p>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown("<div class='hero-box'><h1>Executive Mastery Protocol</h1><p>Tu progreso se sincroniza automáticamente con tu nombre.</p></div>", unsafe_allow_html=True)
         col1, _ = st.columns([1, 1])
         with col1:
             st.markdown("<div class='executive-card'>", unsafe_allow_html=True)
-            name = st.text_input("Nombre Completo:")
-            area = st.selectbox("Especialidad Táctica:", list(DYNAMIC_MCQ.keys()))
-            if st.button("Iniciar Protocolo 16 Etapas 🧠"):
-                if name:
-                    st.session_state.user_name = name
-                    st.session_state.user_area = area
-                    st.session_state.screen = 'placement_test'
-                    st.rerun()
+            name_input = st.text_input("Ingresa tu Nombre Completo:")
+            if st.button("Acceder al Sistema 🧠"):
+                if name_input:
+                    with st.spinner("Buscando expediente en la nube..."):
+                        if load_user_progress(name_input):
+                            st.success(f"¡Bienvenido de vuelta, {name_input}!")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.session_state.user_name = name_input
+                            st.session_state.screen = 'setup_area'
+                            st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
+
+    elif st.session_state.screen == 'setup_area':
+        st.title(f"Perfil de Mando: {st.session_state.user_name}")
+        area = st.selectbox("Selecciona tu Especialidad Técnica:", list(DYNAMIC_MCQ.keys()))
+        if st.button("Comenzar Auditoría de 16 Etapas"):
+            st.session_state.user_area = area
+            st.session_state.screen = 'placement_test'
+            st.rerun()
 
     # 2. EXAMEN (12 MCQ + 4 AI)
     elif st.session_state.screen == 'placement_test':
@@ -240,106 +253,135 @@ if st.session_state.english_level == "No Evaluado":
         total_steps = total_mcq + total_ai
         current_step = st.session_state.placement_step
         
-        st.title(f"🎯 Etapa {current_step + 1} de {total_steps} ({st.session_state.user_area})")
         st.progress(current_step / total_steps)
+        st.subheader(f"Etapa {current_step+1} de {total_steps} ({st.session_state.user_area})")
 
         if current_step < total_mcq:
-            q_data = questions[current_step]
-            st.markdown(f"<div class='executive-card'><h4>{q_data['q']}</h4></div>", unsafe_allow_html=True)
-            for i, opt in enumerate(q_data['options']):
+            q = questions[current_step]
+            st.markdown(f"<div class='executive-card'><h4>{q['q']}</h4></div>", unsafe_allow_html=True)
+            for i, opt in enumerate(q['options']):
                 if st.button(opt, key=f"btn_{current_step}_{i}"):
-                    if i == q_data['ans']: st.session_state.placement_score += 15
+                    if i == q['ans']: st.session_state.placement_score += 15
                     st.session_state.placement_step += 1
                     st.rerun()
         else:
-            ai_step_idx = current_step - total_mcq
+            ai_step = current_step - total_mcq
             if not st.session_state.dynamic_scenarios:
-                with st.spinner("Generando 4 escenarios dinámicos con IA..."):
-                    prompt = f"Generate 4 distinct, very tough executive scenarios for a {st.session_state.user_area} leader. Focus on crisis and authority. Format: Scenario 1 --- Scenario 2 --- Scenario 3 --- Scenario 4"
+                with st.spinner("Generando escenarios tácticos..."):
+                    prompt = f"Generate 4 tough executive scenarios for a {st.session_state.user_area} leader. Format: Scenario 1 --- Scenario 2..."
                     res = call_ai(prompt, API_KEY)
                     st.session_state.dynamic_scenarios = res.split('---')
 
-            current_scenario = st.session_state.dynamic_scenarios[ai_step_idx]
-            st.markdown(f"<div class='executive-card'><b>Escenario AI {ai_step_idx + 1}:</b><br><br>{current_scenario}</div>", unsafe_allow_html=True)
-            ans = st.text_area("Respuesta Ejecutiva:", key=f"ai_ans_{ai_step_idx}")
-            st_speech_to_text(key=f"voice_{ai_step_idx}")
+            current_scenario = st.session_state.dynamic_scenarios[ai_step]
+            st.markdown(f"<div class='executive-card'><b>Escenario AI:</b><br>{current_scenario}</div>", unsafe_allow_html=True)
+            ans = st.text_area("Tu Respuesta:", key=f"ans_{ai_step}")
+            st_speech_to_text(key=f"voice_{ai_step}")
             if st.button("Validar Etapa"):
-                if len(ans) > 30:
-                    st.session_state.placement_ai_responses.append({"q": current_scenario, "a": ans})
+                if len(ans) > 20:
+                    st.session_state.placement_ai_responses.append(ans)
                     st.session_state.placement_step += 1
                     if st.session_state.placement_step == total_steps: st.session_state.screen = 'finalizing'
                     st.rerun()
-                else: st.warning("Por favor desarrolla más tu respuesta.")
 
-    # 3. FINALIZACIÓN
     elif st.session_state.screen == 'finalizing':
         with st.spinner("Auditando nivel de autoridad..."):
-            ai_text = "\n".join([f"Q: {x['q']}\nA: {x['a']}" for x in st.session_state.placement_ai_responses])
-            prompt = f"Audit this {st.session_state.user_area} expert. MCQ Score: {st.session_state.placement_score}. Open responses: {ai_text}. Determine CEFR Level, Score 0-100, Diagnostic of weaknesses, Error Feedback, and 2 Pro Tips in Spanish."
+            prompt = f"Audit engineer {st.session_state.user_area}. Score {st.session_state.placement_score}. Determine CEFR and give detailed feedback in Spanish with VP tips."
             res = call_ai(prompt, API_KEY)
             st.session_state.placement_eval_detailed = res
             for level in ["C2", "C1", "B2", "B1"]:
                 if level in res: st.session_state.english_level = f"{level} - Certified"; break
-            if st.session_state.english_level == "No Evaluado": st.session_state.english_level = "B1 - Intermediate"
-            st.session_state.screen = 'results'
+            st.session_state.placement_completed = True
+            save_user_progress()
             st.rerun()
 
-    elif st.session_state.screen == 'results':
-        st.markdown(f"<div class='level-box'><h1>{st.session_state.english_level}</h1></div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='executive-card'><p style='white-space: pre-wrap;'>{st.session_state.placement_eval_detailed}</p></div>", unsafe_allow_html=True)
-        if st.button("Desbloquear War Room ⚔️"):
-            st.session_state.screen = 'dashboard'
-            st.rerun()
-
-# --- FASE 2: WAR ROOM (RESTAURADO CON FEEDBACK) ---
+# 3. WAR ROOM (PERSISTENTE)
 else:
     st.title(f"🛡️ War Room: {st.session_state.user_name}")
-    tabs = st.tabs(["📅 Roadmap 30 Días", "🤖 AI Lab", "⚔️ Power Verbs", "🔥 The Forge", "📖 Enciclopedia"])
+    tabs = st.tabs(["📅 Roadmap", "🤖 AI Combat Lab", "⚔️ Power Verbs", "🔥 The Forge", "📖 Enciclopedia"])
     
     with tabs[0]:
         st.subheader("Tu Ruta de Transformación Táctica")
         for plan in THIRTY_DAY_PLAN:
             is_active = "day-active" if plan['day'] == st.session_state.current_day else ""
-            st.markdown(f"<div class='day-card {is_active}'><b>DÍA {plan['day']}</b> • {plan['title']}<br><small>{plan['focus']}</small></div>", unsafe_allow_html=True)
+            st.markdown(f"""
+                <div class="day-card {is_active}">
+                    <span style="color: #3b82f6; font-weight: 900;">DÍA {plan['day']} • {plan['phase']}</span>
+                    <h3 style="margin-top: 5px; color: white;">{plan['title']}</h3>
+                    <p style="color:#94a3b8; margin-bottom:0;"><b>Foco:</b> {plan['focus']}</p>
+                </div>
+            """, unsafe_allow_html=True)
 
     with tabs[1]:
         mission = next((p for p in THIRTY_DAY_PLAN if p['day'] == st.session_state.current_day), THIRTY_DAY_PLAN[-1])
-        st.subheader(f"Misión: {mission['title']}")
-        if st.button("🎙️ Generar Escenario con el Mentor"):
+        st.subheader(f"Misión Diaria: {mission['title']}")
+        if st.button("🎙️ Generar Escenario Táctico"):
             with st.spinner("Preparando entrenamiento..."):
-                st.session_state.daily_q = call_ai(f"Elite Mentor. Tough question about {mission['focus']} for a {st.session_state.user_area} expert.", API_KEY)
+                st.session_state.daily_q = call_ai(f"Elite Mentor. Ask a challenging question about {mission['focus']} to a {st.session_state.user_area} expert. Level {st.session_state.english_level}.", API_KEY)
                 st_text_to_speech(st.session_state.daily_q)
+        
         if 'daily_q' in st.session_state:
             st.info(st.session_state.daily_q)
-            ans = st.text_area("Responde:")
-            st_speech_to_text(key="lab_voice")
-            if st.button("Auditar Respuesta"):
-                feedback = call_ai(f"Evaluate answer: {ans}. Give SCORE, Technical Feedback, and 1 Pro Tip in Spanish.", API_KEY)
-                st.markdown(f"<div class='level-box'>{feedback}</div>", unsafe_allow_html=True)
+            ans = st.text_area("Respuesta Ejecutiva:")
+            st_speech_to_text(key="combat_voice")
+            if st.button("Auditar con Feedback y Pro Tips"):
+                with st.spinner("Auditando..."):
+                    prompt = f"""Evaluate: {ans}. 
+                    Provide in SPANISH:
+                    1. SCORE (0-100)
+                    2. FEEDBACK TÉCNICO: Errores gramaticales o de autoridad.
+                    3. TIP PRO: Un consejo VP para mejorar.
+                    4. VERSIÓN BOARDROOM: Script perfecto en inglés."""
+                    res = call_ai(prompt, API_KEY)
+                    st.markdown(f"<div class='level-box' style='background-color: #1e293b; border-left-color: #f59e0b;'>{res}</div>", unsafe_allow_html=True)
+                    st.session_state.xp += 100
+                    save_user_progress()
 
     with tabs[2]:
-        st.subheader("Power Verbs Drill")
+        st.subheader("Combate de Reflejos: Power Verbs")
         drill = st.session_state.current_drill
-        st.markdown(f"<div class='executive-card'>Junior: '{drill[0]}'</div>", unsafe_allow_html=True)
-        pv_ans = st.text_input("Versión Ejecutiva:")
-        if st.button("Validar Impacto"):
+        st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
+        pv_ans = st.text_input("Sustituye por la versión ejecutiva:")
+        
+        if st.button("Validar Impacto 🎯"):
             if drill[1].lower() in pv_ans.lower():
-                st.success("¡Correcto!")
+                st.success("¡Excelente! Has neutralizado la frase básica.")
                 st.session_state.xp += 50
+                st.info(f"💡 **TIP PRO:** '{drill[1].split()[1]}' es un verbo de acción que implica liderazgo y responsabilidad total.")
+                time.sleep(2)
                 st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
+                save_user_progress()
                 st.rerun()
-            else: st.error(f"Usa: '{drill[1]}'")
+            else:
+                st.error(f"Sigue siendo básico. La frase letal es: '{drill[1]}'")
+                st.caption("💡 **TIP PRO:** Usa verbos que demuestren un proceso o una estrategia, como 'rectified' o 'orchestrated'.")
 
     with tabs[3]:
-        st.subheader("The Forge")
-        draft = st.text_area("Ingresa un logro:")
-        if st.button("⚒️ Forjar"):
-            res = call_ai(f"Transform to STAR executive achievement with a Pro Tip: {draft}", API_KEY)
-            st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
+        st.subheader("La Fragua: Forja de Logros")
+        draft = st.text_area("Ingresa un logro básico (ej: Reduje scrap):")
+        if st.button("⚒️ Forjar Logro VP"):
+            with st.spinner("Forjando..."):
+                res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA with a Pro Tip in Spanish: {draft}", API_KEY)
+                st.markdown(f"<div class='executive-card'><b>Resultado VP:</b><br>{res}</div>", unsafe_allow_html=True)
+                save_user_progress()
 
     with tabs[4]:
-        st.subheader("Enciclopedia")
-        st.markdown("<span class='badge-ops'>🏭 Ops</span> EBITDA, S&OP, IATF, RCA.", unsafe_allow_html=True)
+        st.subheader("Enciclopedia Técnica")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown("<span class='badge-ops'>🏭 Ops & Supply</span>", unsafe_allow_html=True)
+            st.write("- **EBITDA:** Beneficio operativo.")
+            st.write("- **Hard Savings:** Ahorros reales.")
+            st.write("- **S&OP:** Alineación de demanda y suministro.")
+        with c2:
+            st.markdown("<span class='badge-tech'>🧬 Tech & Data</span>", unsafe_allow_html=True)
+            st.write("- **SQL Query:** Consulta de datos.")
+            st.write("- **BigQuery:** Almacén de Google.")
+            st.write("- **IRA:** Precisión de inventario.")
+        with c3:
+            st.markdown("<span class='badge-compliance'>⚖️ Quality</span>", unsafe_allow_html=True)
+            st.write("- **IATF 16949:** Calidad Automotriz.")
+            st.write("- **Cpk:** Capacidad de proceso.")
+            st.write("- **RCA:** Análisis de Causa Raíz.")
 
 st.divider()
-st.caption("Protocolo desarrollado por Ing. Fernando Montes Delgado | All Areas Restored | Feedback Enabled")
+st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Cloud Persistence & Full Knowledge Base Restored")
