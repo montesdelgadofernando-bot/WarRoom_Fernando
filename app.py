@@ -563,7 +563,6 @@ elif st.session_state.screen == 'dashboard':
             </div>
         """, unsafe_allow_html=True)
 
-        # ASISTENTE 1
         sug_key_1 = f"rm_{st.session_state.selected_roadmap_day}"
         with st.expander("🤖 Asistente Estratégico (Conectores y Power Verbs)"):
             if st.button("💡 Sugerir bloques de construcción para tu circuito", key="btn_a_1"):
@@ -591,7 +590,6 @@ elif st.session_state.screen == 'dashboard':
             "By leveraging these data sets, we successfully mitigated the supply chain risk."
         ]
         
-        # ASISTENTE 2
         with st.expander("🤖 Asistente Estratégico (Análisis Fonético y Contexto)"):
             if st.button("💡 ¿Por qué estas frases suenan a nivel Directivo?", key="btn_a_shadow"):
                 with st.spinner("Analizando estructura..."):
@@ -608,7 +606,7 @@ elif st.session_state.screen == 'dashboard':
             with col2:
                 st_speech_to_text(key=f"shadow_mic_{idx}")
 
-    # 3. ENCICLOPEDIA VP (RESTUARADA CON ASISTENTE)
+    # 3. ENCICLOPEDIA VP (CON ASISTENTE)
     with tabs[2]:
         st.subheader("Enciclopedia de Jerga Corporativa")
         st.info("💡 **Instrucciones:** Busca términos técnicos. La IA te mostrará la diferencia entre cómo un Junior lo explica y cómo un VP lo articula en una junta. Todo en inglés.")
@@ -636,7 +634,6 @@ elif st.session_state.screen == 'dashboard':
         st.markdown("<br>### 📚 Términos Sugeridos", unsafe_allow_html=True)
         category = st.selectbox("Explorar:", list(ENCYCLOPEDIA.keys()))
         
-        # ASISTENTE 3
         sug_key_2 = f"enc_{category}"
         with st.expander("🤖 Asistente Estratégico (Conectores y Palabras Nuevas)"):
             if st.button("💡 Sugerir bloques lógicos para esta especialidad", key="btn_a_2"):
@@ -665,7 +662,6 @@ elif st.session_state.screen == 'dashboard':
         if st.session_state.get('daily_q'):
             st.warning(st.session_state.daily_q)
             
-            # ASISTENTE 4
             with st.expander("🤖 Asistente Estratégico (Sugerir vocabulario)"):
                 if st.button("💡 Dame Conectores y Power Verbs para esta crisis", key="btn_a_combat"):
                     with st.spinner("Analizando..."):
@@ -689,7 +685,6 @@ elif st.session_state.screen == 'dashboard':
         drill = st.session_state.current_drill
         st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
         
-        # ASISTENTE 5
         sug_key_4 = f"pv_{drill[0]}"
         with st.expander("🤖 Asistente Estratégico (Pista Natural)"):
             if st.button("💡 Dame una pista (Conectores o Sinónimos)", key="btn_a_4"):
@@ -711,7 +706,6 @@ elif st.session_state.screen == 'dashboard':
         c_drill = st.session_state.current_connector_drill
         st.markdown(f"<div class='executive-card' style='border-color:#34d399;'><span>Tipo: {c_drill['type']}</span><h3 style='color:white;'>\"{c_drill['junior']}\"</h3></div>", unsafe_allow_html=True)
         
-        # ASISTENTE 6
         with st.expander("🤖 Asistente Estratégico (Sugerir Conectores)"):
             if st.button("💡 Dime qué conectores de " + c_drill['type'] + " puedo usar", key="btn_a_5"):
                 st.info(f"Opciones ejecutivas válidas: **{', '.join(c_drill['target'])}**")
@@ -728,7 +722,6 @@ elif st.session_state.screen == 'dashboard':
         st.info("💡 **Instrucciones:** Ingresa un logro básico. La IA lo transformará en una declaración orientada a EBITDA.")
         draft = st.text_area("Ingresa un logro básico (ej: Reduje el tiempo de entrega 10%):")
         
-        # ASISTENTE 7
         sug_key_6 = "forge_current"
         with st.expander("🤖 Asistente Estratégico (Conectar ideas)"):
             if st.button("💡 Sugerir conectores lógicos y métricas", key="btn_a_6"):
