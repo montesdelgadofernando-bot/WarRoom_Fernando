@@ -322,6 +322,7 @@ if 'current_q' not in st.session_state: st.session_state.current_q = None
 if 'current_drill' not in st.session_state: st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
 if 'selected_roadmap_day' not in st.session_state: st.session_state.selected_roadmap_day = 1
 if 'assistant_suggestions' not in st.session_state: st.session_state.assistant_suggestions = {}
+if 'encyclopedia_result' not in st.session_state: st.session_state.encyclopedia_result = None
 
 # --- PANEL LATERAL ---
 with st.sidebar:
@@ -581,10 +582,35 @@ elif st.session_state.screen == 'dashboard':
 
     # 2. ENCICLOPEDIA VP INTERACTIVA
     with tabs[1]:
-        st.subheader("Enciclopedia de Jerga Corporativa (C-Level)")
-        st.write("Aprende no solo el significado, sino cómo usar la palabra como un verdadero Directivo.")
+        st.subheader("Enciclopedia de Jerga Corporativa (Buscador AI)")
+        st.write("Busca cualquier término técnico, concepto o acrónimo. Nuestro Mentor Elite te enseñará cómo usarlo con autoridad directiva.")
         
-        category = st.selectbox("📚 Selecciona el Área de Estudio:", list(ENCYCLOPEDIA.keys()))
+        # --- BUSCADOR INFINITO CON IA ---
+        search_term = st.text_input("🔍 Buscar término (ej. Bottleneck, Micromanagement, EBITDA, Kanban):", key="search_term_input")
+        if st.button("Buscar en la Base de Datos C-Level", type="primary"):
+            if search_term:
+                with st.spinner(f"El Mentor Elite está analizando '{search_term}'..."):
+                    prompt_enc = f"""Actúa como un diccionario corporativo para altos ejecutivos. El usuario busca el término '{search_term}'.
+                    Devuelve estrictamente en este formato HTML (No uses markdown fuera del HTML):
+                    <div style='background-color:#0f172a; padding:25px; border-radius:15px; border-left:6px solid #f59e0b; border-right:1px solid #334155; border-top:1px solid #334155; border-bottom:1px solid #334155;'>
+                    <h3 style='color:white; margin-top:0; font-size:1.5em;'>📖 {search_term.upper()}</h3>
+                    <p style='color:#cbd5e1; font-size:1.1em;'><b>Definición:</b> [Definición técnica y ejecutiva muy clara en español]</p>
+                    <hr style='border-color:#334155; margin:15px 0;'>
+                    <p style='color:#f87171; font-size:1.1em;'><b>🚫 Un Junior diría:</b> <i>"[Frase débil o común en inglés usando este término o concepto]"</i></p>
+                    <p style='color:#34d399; font-size:1.1em;'><b>✅ Un VP diría:</b> <i>"[Frase de alto impacto, estratégica y dominante en inglés demostrando liderazgo]"</i></p>
+                    </div>"""
+                    st.session_state.encyclopedia_result = call_ai(prompt_enc, API_KEY)
+
+        if st.session_state.encyclopedia_result:
+            st.markdown(st.session_state.encyclopedia_result, unsafe_allow_html=True)
+            if st.button("Limpiar Búsqueda"):
+                st.session_state.encyclopedia_result = None
+                st.rerun()
+                
+        st.markdown("<br><hr style='border-color:#334155;'><br>", unsafe_allow_html=True)
+        st.markdown("### 📚 Términos Sugeridos por Especialidad")
+
+        category = st.selectbox("Explorar categorías base:", list(ENCYCLOPEDIA.keys()))
         
         sug_key_2 = f"enc_{category}"
         with st.expander("🤖 Asistente Estratégico (Ampliar mi Vocabulario)"):
@@ -676,3 +702,4 @@ elif st.session_state.screen == 'dashboard':
 
 st.divider()
 st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Algoritmo Adaptativo & Firebase Cloud Enabled | Gemini 3 Flash Preview")
+
