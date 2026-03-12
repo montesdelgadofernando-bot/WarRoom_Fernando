@@ -355,7 +355,7 @@ def generate_vocabulary_suggestions(context, areas, position):
 
 # --- ENRUTADOR PRINCIPAL ---
 if st.session_state.screen == 'home':
-    st.markdown("<div class='hero-box'><h1>Global Executive Mastery</h1><p>El Simulador C-Level Definitivo | Edición 2025</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-box'><h1>Global Executive Mastery</h1><p>El Simulador C-Level Definitivo | Edición 2026</p></div>", unsafe_allow_html=True)
     st.info("💡 **Instrucciones:** Selecciona tu perfil. Nuestra IA cruzará tu **Especialidad** con tu **Posición** para generar un algoritmo de evaluación de Liderazgo.")
     
     col1, _ = st.columns([1, 1])
@@ -543,6 +543,14 @@ elif st.session_state.screen == 'dashboard':
             </div>
         """, unsafe_allow_html=True)
 
+        sug_key_1 = f"rm_{st.session_state.selected_roadmap_day}"
+        with st.expander("🤖 Asistente Estratégico (Conectores y Power Verbs)"):
+            if st.button("💡 Sugerir bloques de construcción para tu circuito", key="btn_a_1"):
+                with st.spinner("Analizando por inmersión..."):
+                    st.session_state.assistant_suggestions[sug_key_1] = generate_vocabulary_suggestions(selected_data['actividad'], st.session_state.user_area, st.session_state.user_position)
+            if st.session_state.assistant_suggestions.get(sug_key_1):
+                st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_1]}</div>", unsafe_allow_html=True)
+
         if st.button("✅ Terminé mi Circuito de 50 Minutos (Avanzar de Día)"):
             st.session_state.xp += 800
             st.session_state.current_day = min(90, st.session_state.selected_roadmap_day + 1)
@@ -569,10 +577,9 @@ elif st.session_state.screen == 'dashboard':
                 if st.button("🔊 Escuchar Pronunciación", key=f"shadow_play_{idx}"):
                     st_text_to_speech(phrase)
             with col2:
-                # MICRÓFONO AGREGADO AL SHADOWING
                 st_speech_to_text(key=f"shadow_mic_{idx}")
 
-    # 3. ENCICLOPEDIA VP
+    # 3. ENCICLOPEDIA VP CON ASISTENTE
     with tabs[2]:
         st.subheader("Enciclopedia de Jerga Corporativa")
         st.info("💡 **Instrucciones:** Busca términos técnicos. La IA te mostrará la diferencia entre cómo un Junior lo explica y cómo un VP lo articula en una junta. Todo generado 100% en inglés.")
@@ -597,7 +604,24 @@ elif st.session_state.screen == 'dashboard':
             if st.button("Limpiar Búsqueda"):
                 st.session_state.encyclopedia_result = None; st.rerun()
 
-    # 4. AI COMBAT LAB (CON MICRÓFONO)
+        st.markdown("<br>### 📚 Términos Sugeridos", unsafe_allow_html=True)
+        category = st.selectbox("Explorar:", list(ENCYCLOPEDIA.keys()))
+        
+        sug_key_2 = f"enc_{category}"
+        with st.expander("🤖 Asistente Estratégico (Conectores y Palabras Nuevas)"):
+            if st.button("💡 Sugerir bloques lógicos para esta especialidad", key="btn_a_2"):
+                with st.spinner("Buscando términos..."):
+                    st.session_state.assistant_suggestions[sug_key_2] = generate_vocabulary_suggestions(f"Términos técnicos y conectores lógicos de {category}", st.session_state.user_area, st.session_state.user_position)
+            if st.session_state.assistant_suggestions.get(sug_key_2):
+                st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_2]}</div>", unsafe_allow_html=True)
+
+        for term, data in ENCYCLOPEDIA[category].items():
+            with st.expander(f"📌 {term}"):
+                st.markdown(f"**Definición:** {data['desc']}")
+                st.markdown(f"<div style='background-color:#1e293b; padding:10px; border-left:4px solid #f59e0b;'><b>Cómo lo hila un VP:</b><br> <i>\"{data['uso']}\"</i></div>", unsafe_allow_html=True)
+
+
+    # 4. AI COMBAT LAB (CON MICRÓFONO Y ASISTENTE)
     with tabs[3]:
         mission = NINETY_DAY_PLAN[st.session_state.selected_roadmap_day]
         st.subheader(f"Combat Lab: {mission['title']}")
@@ -619,7 +643,6 @@ elif st.session_state.screen == 'dashboard':
                 if st.session_state.assistant_suggestions.get('combat'):
                     st.markdown(f"<div class='eval-box'>{st.session_state.assistant_suggestions['combat']}</div>", unsafe_allow_html=True)
             
-            # MICRÓFONO FUNCIONANDO AQUÍ
             ans = st.text_area("Tu Respuesta Ejecutiva (Únelo con conectores y puedes usar el micrófono):")
             st_speech_to_text(key="combat_voice_lab")
             
@@ -629,36 +652,58 @@ elif st.session_state.screen == 'dashboard':
                     st.markdown(f"<div class='level-box'>{res}</div>", unsafe_allow_html=True)
                     st.session_state.xp += 100; save_user_progress()
 
-    # 5. POWER VERBS
+    # 5. POWER VERBS CON ASISTENTE
     with tabs[4]:
         st.subheader("Combate de Reflejos: Power Verbs")
         st.info("💡 **Instrucciones:** Sustituye la frase del Junior por el verbo avanzado oficial. Haz 3 o 4 por circuito diario.")
         drill = st.session_state.current_drill
         st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
         
+        sug_key_4 = f"pv_{drill[0]}"
+        with st.expander("🤖 Asistente Estratégico (Pista Natural)"):
+            if st.button("💡 Dame una pista (Conectores o Sinónimos)", key="btn_a_4"):
+                with st.spinner("Buscando bloques de construcción..."):
+                    st.session_state.assistant_suggestions[sug_key_4] = call_ai(f"El usuario intenta adivinar la frase ejecutiva '{drill[1]}' a partir de la básica '{drill[0]}'. Sugiere 3 verbos o conectores en inglés (sin revelar la respuesta completa) que le sirvan de pista.", API_KEY)
+            if st.session_state.assistant_suggestions.get(sug_key_4):
+                st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_4]}</div>", unsafe_allow_html=True)
+
         pv_ans = st.text_input("Sustituye por el verbo de la versión ejecutiva:")
         if st.button("Validar Impacto 🎯"):
             if drill[1].lower() in pv_ans.lower() or any(word in pv_ans.lower() for word in drill[1].split() if len(word)>4):
                 st.success(f"¡Excelente! La frase completa es: '{drill[1]}'"); time.sleep(1.5); st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS); st.rerun()
             else: st.error(f"Sigue siendo básico. Usa palabras de: '{drill[1]}'")
 
-    # 6. CONECTORES LÓGICOS
+    # 6. CONECTORES LÓGICOS CON ASISTENTE
     with tabs[5]:
         st.subheader("🔗 Simulador de Conectores Lógicos")
         st.info("💡 **Instrucciones:** Une las dos oraciones utilizando un conector lógico avanzado (Consequently, Therefore). Haz 3 o 4 por circuito.")
         c_drill = st.session_state.current_connector_drill
         st.markdown(f"<div class='executive-card' style='border-color:#34d399;'><span>Tipo: {c_drill['type']}</span><h3 style='color:white;'>\"{c_drill['junior']}\"</h3></div>", unsafe_allow_html=True)
+        
+        with st.expander("🤖 Asistente Estratégico (Sugerir Conectores)"):
+            if st.button("💡 Dime qué conectores de " + c_drill['type'] + " puedo usar"):
+                st.info(f"Opciones ejecutivas válidas: **{', '.join(c_drill['target'])}**")
+
         conn_ans = st.text_area("Reescribe uniendo fluidamente:")
         if st.button("Evaluar Fluidez 🔗"):
             if any(target.lower() in conn_ans.lower() for target in c_drill['target']):
                 st.success("¡Perfecto! Fluidez nivel VP."); time.sleep(1.5); st.session_state.current_connector_drill = random.choice(CONNECTORS_DRILLS); st.rerun()
             else: st.error(f"Te faltó el conector correcto: {c_drill['target'][0]} o {c_drill['target'][1]}.")
 
-    # 7. THE FORGE
+    # 7. THE FORGE CON ASISTENTE
     with tabs[6]:
         st.subheader("La Fragua: Forja de Logros")
         st.info("💡 **Instrucciones:** Ingresa un logro básico. La IA lo transformará en una declaración orientada a EBITDA.")
         draft = st.text_area("Ingresa un logro básico (ej: Reduje el tiempo de entrega 10%):")
+        
+        sug_key_6 = "forge_current"
+        with st.expander("🤖 Asistente Estratégico (Conectar ideas)"):
+            if st.button("💡 Sugerir conectores lógicos y métricas", key="btn_a_6"):
+                with st.spinner("Generando bloques lógicos..."):
+                    st.session_state.assistant_suggestions[sug_key_6] = generate_vocabulary_suggestions(f"Mejorar la redacción de este logro: {draft}" if draft else "Redactar un logro financiero de alto impacto (reducción de costos, optimización)", st.session_state.user_area, st.session_state.user_position)
+            if st.session_state.assistant_suggestions.get(sug_key_6):
+                st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_6]}</div>", unsafe_allow_html=True)
+
         if st.button("⚒️ Forjar Logro VP"):
             with st.spinner("Forjando..."):
                 res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA. Pro Tip in Spanish: {draft}", API_KEY)
