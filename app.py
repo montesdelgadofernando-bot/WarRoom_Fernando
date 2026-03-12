@@ -321,6 +321,7 @@ if 'used_q_texts' not in st.session_state: st.session_state.used_q_texts = []
 if 'current_q' not in st.session_state: st.session_state.current_q = None
 if 'current_drill' not in st.session_state: st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
 if 'selected_roadmap_day' not in st.session_state: st.session_state.selected_roadmap_day = 1
+if 'assistant_suggestions' not in st.session_state: st.session_state.assistant_suggestions = {}
 
 # --- PANEL LATERAL ---
 with st.sidebar:
@@ -328,6 +329,23 @@ with st.sidebar:
     if db: st.success("☁️ Guardado en la Nube: ACTIVADO")
     else: st.warning("⚠️ Sin conexión a la base de datos (Modo Local)")
     st.divider()
+    
+    # --- NUEVO MENÚ DE NAVEGACIÓN ---
+    st.markdown("### 🧭 Navegación Rápida")
+    if st.button("🏠 Home (Inicio)", use_container_width=True):
+        st.session_state.screen = 'home'
+        st.rerun()
+        
+    if st.session_state.get("placement_completed"):
+        if st.button("📊 Último Diagnóstico", use_container_width=True):
+            st.session_state.screen = 'results'
+            st.rerun()
+        if st.button("🛡️ Mi War Room", use_container_width=True):
+            st.session_state.screen = 'dashboard'
+            st.rerun()
+    st.divider()
+    # --------------------------------
+
     if st.session_state.user_name:
         st.write(f"**Líder:** {st.session_state.user_name}")
         st.write(f"**Especialidad:** {st.session_state.user_area}")
@@ -361,6 +379,15 @@ def get_adaptive_question(area, diff):
 def adjust_difficulty(is_correct, current_diff):
     if is_correct: return "dificil" if current_diff == "media" else ("media" if current_diff == "facil" else "dificil")
     else: return "facil" if current_diff == "media" else ("media" if current_diff == "dificil" else "facil")
+
+def generate_vocabulary_suggestions(context, area):
+    prompt = f"""Actúa como un Asistente de Redacción Ejecutiva para un líder en {area}.
+    El usuario necesita escribir o hablar sobre: '{context}'.
+    Sugiere vocabulario en inglés dividido en 2 listas muy cortas y directas:
+    1. 🟢 Palabras de uso común y conectores (3 sugerencias).
+    2. 🚀 Power Verbs / Nivel VP (3 verbos o frases de alto impacto corporativo).
+    Formato Markdown, sin introducciones largas."""
+    return call_ai(prompt, API_KEY)
 
 # --- ENRUTADOR PRINCIPAL ---
 if st.session_state.screen == 'home':
@@ -535,6 +562,14 @@ elif st.session_state.screen == 'dashboard':
             </div>
         """, unsafe_allow_html=True)
         
+        sug_key_1 = f"rm_{st.session_state.selected_roadmap_day}"
+        with st.expander("🤖 Asistente Estratégico (Sugerencias de Vocabulario)"):
+            if st.button("💡 Sugerir palabras clave para esta actividad", key="btn_a_1"):
+                with st.spinner("Analizando..."):
+                    st.session_state.assistant_suggestions[sug_key_1] = generate_vocabulary_suggestions(selected_data['actividad'], st.session_state.user_area)
+            if st.session_state.assistant_suggestions.get(sug_key_1):
+                st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_1]}</div>", unsafe_allow_html=True)
+        
         if st.button("✅ Marcar Día como Completado y Avanzar"):
             st.session_state.xp += 200
             st.session_state.current_day = min(30, st.session_state.selected_roadmap_day + 1)
@@ -550,6 +585,14 @@ elif st.session_state.screen == 'dashboard':
         st.write("Aprende no solo el significado, sino cómo usar la palabra como un verdadero Directivo.")
         
         category = st.selectbox("📚 Selecciona el Área de Estudio:", list(ENCYCLOPEDIA.keys()))
+        
+        sug_key_2 = f"enc_{category}"
+        with st.expander("🤖 Asistente Estratégico (Ampliar mi Vocabulario)"):
+            if st.button("💡 Sugerir nuevas palabras VP para esta especialidad", key="btn_a_2"):
+                with st.spinner("Buscando términos..."):
+                    st.session_state.assistant_suggestions[sug_key_2] = generate_vocabulary_suggestions(f"Términos técnicos y jerga corporativa de {category}", st.session_state.user_area)
+            if st.session_state.assistant_suggestions.get(sug_key_2):
+                st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_2]}</div>", unsafe_allow_html=True)
         
         for term, data in ENCYCLOPEDIA[category].items():
             with st.expander(f"📌 {term}"):
@@ -567,6 +610,15 @@ elif st.session_state.screen == 'dashboard':
         
         if 'daily_q' in st.session_state:
             st.info(st.session_state.daily_q)
+            
+            sug_key_3 = f"cl_{st.session_state.current_day}"
+            with st.expander("🤖 Asistente Estratégico (Vocabulario para tu Respuesta)"):
+                if st.button("💡 Sugerir vocabulario clave para contestar", key="btn_a_3"):
+                    with st.spinner("Analizando pregunta..."):
+                        st.session_state.assistant_suggestions[sug_key_3] = generate_vocabulary_suggestions(f"Responder a la pregunta: {st.session_state.daily_q}", st.session_state.user_area)
+                if st.session_state.assistant_suggestions.get(sug_key_3):
+                    st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_3]}</div>", unsafe_allow_html=True)
+            
             ans = st.text_area("Tu Respuesta Ejecutiva:")
             st_speech_to_text(key="combat_voice")
             if st.button("Auditar Respuesta"):
@@ -582,6 +634,15 @@ elif st.session_state.screen == 'dashboard':
         st.subheader("Combate de Reflejos: Power Verbs")
         drill = st.session_state.current_drill
         st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
+        
+        sug_key_4 = f"pv_{drill[0]}"
+        with st.expander("🤖 Asistente Estratégico (Pista de Sinónimos)"):
+            if st.button("💡 Dame una pista (Verbos similares)", key="btn_a_4"):
+                with st.spinner("Buscando..."):
+                    st.session_state.assistant_suggestions[sug_key_4] = call_ai(f"El usuario intenta adivinar la frase ejecutiva '{drill[1]}' a partir de la frase junior '{drill[0]}'. Sugiere 3 verbos en inglés (sin revelar la respuesta completa) que le sirvan de pista.", API_KEY)
+            if st.session_state.assistant_suggestions.get(sug_key_4):
+                st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_4]}</div>", unsafe_allow_html=True)
+                
         pv_ans = st.text_input("Sustituye por la versión ejecutiva:")
         if st.button("Validar Impacto 🎯"):
             if drill[1].lower() in pv_ans.lower():
@@ -598,6 +659,15 @@ elif st.session_state.screen == 'dashboard':
     with tabs[4]:
         st.subheader("La Fragua: Forja de Logros")
         draft = st.text_area("Ingresa un logro básico (ej: Reduje el tiempo de entrega 10%):")
+        
+        sug_key_5 = "forge_current"
+        with st.expander("🤖 Asistente Estratégico (Mejorar mi Logro)"):
+            if st.button("💡 Sugerir vocabulario y métricas de impacto", key="btn_a_5"):
+                with st.spinner("Buscando..."):
+                    st.session_state.assistant_suggestions[sug_key_5] = generate_vocabulary_suggestions(f"Mejorar la redacción de este logro: {draft}" if draft else "Redactar un logro financiero de alto impacto (reducción de costos, optimización)", st.session_state.user_area)
+            if st.session_state.assistant_suggestions.get(sug_key_5):
+                st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_5]}</div>", unsafe_allow_html=True)
+                
         if st.button("⚒️ Forjar Logro VP"):
             with st.spinner("Forjando texto corporativo..."):
                 res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA with a Pro Tip in Spanish: {draft}", API_KEY)
