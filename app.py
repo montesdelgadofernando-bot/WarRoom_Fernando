@@ -191,6 +191,31 @@ DYNAMIC_MCQ = {
 for area in ["Project Manager", "Ingeniería de Producto", "Data Science & SQL", "Logística", "Producción", "Otra"]:
     if area not in DYNAMIC_MCQ: DYNAMIC_MCQ[area] = copy.deepcopy(DYNAMIC_MCQ["Operaciones & Supply Chain"])
 
+# --- ENCICLOPEDIA (RESTAURADA Y BLINDADA) ---
+ENCYCLOPEDIA = {
+    "Operaciones & Supply Chain": {
+        "EBITDA": {"desc": "Beneficio antes de intereses, impuestos, depreciación y amortización.", "uso": "Furthermore, this strategic initiative protected our EBITDA margins by 12%."},
+        "S&OP": {"desc": "Sales and Operations Planning. Alineación mensual de demanda y capacidad.", "uso": "Consequently, we re-baselined the S&OP to mitigate forecast variance."},
+        "Throughput": {"desc": "Tasa real de producción o flujo de trabajo del sistema.", "uso": "We maximized throughput; moreover, we maintained rigorous zero-defect standards."},
+        "Lead Time": {"desc": "Tiempo total desde la orden del cliente hasta la entrega.", "uso": "As a result, we negotiated a 15% lead-time reduction to accelerate time-to-market."},
+        "Bottleneck": {"desc": "Restricción que dicta la capacidad máxima de todo el sistema.", "uso": "Therefore, I orchestrated a Takt-time analysis to eliminate the bottleneck."}
+    },
+    "Calidad & Lean Manufacturing": {
+        "RCA (Root Cause Analysis)": {"desc": "Metodología para identificar el origen sistemático de un problema.", "uso": "I spearheaded a data-driven RCA to subsequently deploy countermeasures."},
+        "Cpk (Process Capability)": {"desc": "Índice que mide qué tan centrado y estable está un proceso.", "uso": "We stabilized the parameters, effectively raising the Cpk from 0.8 to 1.67."},
+        "Containment": {"desc": "Acción inmediata para proteger al cliente de un defecto.", "uso": "Due to the defect, immediate containment actions were deployed to quarantine lots."},
+        "Poka-Yoke": {"desc": "Mecanismo a prueba de errores integrado en el proceso.", "uso": "In order to eliminate human error, we implemented robust error-proofing countermeasures."},
+        "Scrap": {"desc": "Material desechado por no cumplir con especificaciones.", "uso": "Ultimately, the Lean initiative delivered a 30% reduction in scrap."}
+    },
+    "Project Management & Data": {
+        "Scope Creep": {"desc": "Aumento descontrolado del alcance original de un proyecto.", "uso": "To prevent scope creep, we implemented a strict change-control board."},
+        "Agile / Scrum": {"desc": "Metodología iterativa para entrega rápida de valor.", "uso": "We transitioned to Agile, significantly improving cross-functional collaboration."},
+        "SQL / BigQuery": {"desc": "Lenguajes para extracción y análisis masivo de datos.", "uso": "I leveraged BigQuery analytics to extract actionable insights from raw data."},
+        "Stakeholder": {"desc": "Cualquier persona afectada o con interés en el proyecto.", "uso": "I orchestrated a workshop; thus ensuring complete stakeholder alignment."},
+        "ROI (Return on Investment)": {"desc": "Retorno de inversión de un proyecto o maquinaria.", "uso": "Consequently, the projected ROI for this CAPEX request is under 14 months."}
+    }
+}
+
 # --- DATA DRILLS (VERBOS Y CONECTORES) ---
 POWER_VERBS_DRILLS = [
     ("I fixed the problem", "I rectified the non-conformance"),
@@ -421,7 +446,6 @@ elif st.session_state.screen == 'placement_test':
         current_scenario = st.session_state.dynamic_scenarios[ai_step] if ai_step < len(st.session_state.dynamic_scenarios) else "Explain a major process failure and your leadership containment action."
         st.markdown(f"<div class='executive-card'><b>Situación Crítica (Usa el Micrófono para responder):</b><br>{current_scenario}</div>", unsafe_allow_html=True)
         
-        # MICRÓFONO INCORPORADO AQUÍ
         ans = st.text_area("Tu Respuesta en Inglés (Puedes dictarla haciendo clic en el micrófono de abajo):")
         st_speech_to_text(key=f"voice_placement_{ai_step}")
         
@@ -500,10 +524,10 @@ elif st.session_state.screen == 'dashboard':
     st.title(f"🛡️ War Room: {st.session_state.user_name}")
     tabs = st.tabs(["📅 Plan 90 Días", "🎧 Shadowing", "📖 Enciclopedia", "🤖 Combat Lab", "⚔️ Verbos", "🔗 Conectores", "🔥 Fragua"])
     
-    # 1. ROADMAP (90 DÍAS DIVIDIDO EN 3 MESES)
+    # 1. ROADMAP (CON ASISTENTE)
     with tabs[0]:
         st.subheader("Tu Calendario Táctico (Circuito 50 Min)")
-        st.info("💡 **Instrucciones:** Selecciona el mes actual para ver tus misiones. Completa el circuito de 50 minutos diarios para saltar un nivel (ej. B1 a C1) en 90 días.")
+        st.info("💡 **Instrucciones:** Selecciona el mes actual para ver tus misiones. Completa el circuito diario para saltar un nivel en 90 días.")
         
         st.markdown(f"""
         <div style="background-color: #064e3b; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981; margin-bottom: 20px;">
@@ -514,14 +538,11 @@ elif st.session_state.screen == 'dashboard':
         </div>
         """, unsafe_allow_html=True)
         
-        # DIVISIÓN VISUAL EN 3 MESES (30 Días cada uno)
         meses_tabs = st.tabs(["📅 Mes 1 (Días 1-30)", "📅 Mes 2 (Días 31-60)", "📅 Mes 3 (Días 61-90)"])
-        
         for mes_idx, mes_tab in enumerate(meses_tabs):
             with mes_tab:
                 start_day = (mes_idx * 30) + 1
                 end_day = start_day + 30
-                
                 cols = st.columns(10)
                 for i in range(start_day, end_day):
                     with cols[(i - start_day) % 10]:
@@ -530,7 +551,6 @@ elif st.session_state.screen == 'dashboard':
                             st.session_state.selected_roadmap_day = i
                             st.rerun()
 
-        # Detalle de la misión siempre visible abajo
         selected_data = NINETY_DAY_PLAN[st.session_state.selected_roadmap_day]
         st.markdown(f"""
             <div class="mission-card">
@@ -543,6 +563,7 @@ elif st.session_state.screen == 'dashboard':
             </div>
         """, unsafe_allow_html=True)
 
+        # ASISTENTE 1
         sug_key_1 = f"rm_{st.session_state.selected_roadmap_day}"
         with st.expander("🤖 Asistente Estratégico (Conectores y Power Verbs)"):
             if st.button("💡 Sugerir bloques de construcción para tu circuito", key="btn_a_1"):
@@ -559,10 +580,10 @@ elif st.session_state.screen == 'dashboard':
             st.success("¡Circuito completado con éxito! Fluidez adquirida y guardada en la nube.")
             time.sleep(1.5); st.rerun()
 
-    # 2. SHADOWING (ENTRENAMIENTO AUDITIVO CON MICRÓFONO)
+    # 2. SHADOWING (CON ASISTENTE DE ANÁLISIS)
     with tabs[1]:
         st.subheader("🎧 Entrenamiento Auditivo (Shadowing)")
-        st.info("💡 **El Método:** 1. Presiona 'Escuchar'. 2. Escucha la pronunciación nativa. 3. Usa el micrófono de abajo para repetir la frase en voz alta y comprobar tu fluidez.")
+        st.info("💡 **El Método:** 1. Presiona 'Escuchar'. 2. Escucha la pronunciación nativa. 3. Usa el micrófono para repetir la frase en voz alta.")
         
         phrases_to_shadow = [
             "Furthermore, we must deploy immediate containment actions.",
@@ -570,6 +591,14 @@ elif st.session_state.screen == 'dashboard':
             "By leveraging these data sets, we successfully mitigated the supply chain risk."
         ]
         
+        # ASISTENTE 2
+        with st.expander("🤖 Asistente Estratégico (Análisis Fonético y Contexto)"):
+            if st.button("💡 ¿Por qué estas frases suenan a nivel Directivo?", key="btn_a_shadow"):
+                with st.spinner("Analizando estructura..."):
+                    st.session_state.assistant_suggestions['shadow'] = call_ai("Explica brevemente en ESPAÑOL por qué las palabras 'Furthermore', 'Consequently', 'Leveraging' y 'Mitigate' proyectan autoridad corporativa y en qué contexto usarlas.", API_KEY)
+            if st.session_state.assistant_suggestions.get('shadow'):
+                st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions['shadow']}</div>", unsafe_allow_html=True)
+
         for idx, phrase in enumerate(phrases_to_shadow):
             st.markdown(f"<div class='executive-card' style='padding:20px; margin-bottom:10px;'><h3 style='color:white; margin:0;'>\"{phrase}\"</h3></div>", unsafe_allow_html=True)
             col1, col2 = st.columns([1, 2])
@@ -579,10 +608,10 @@ elif st.session_state.screen == 'dashboard':
             with col2:
                 st_speech_to_text(key=f"shadow_mic_{idx}")
 
-    # 3. ENCICLOPEDIA VP CON ASISTENTE
+    # 3. ENCICLOPEDIA VP (RESTUARADA CON ASISTENTE)
     with tabs[2]:
         st.subheader("Enciclopedia de Jerga Corporativa")
-        st.info("💡 **Instrucciones:** Busca términos técnicos. La IA te mostrará la diferencia entre cómo un Junior lo explica y cómo un VP lo articula en una junta. Todo generado 100% en inglés.")
+        st.info("💡 **Instrucciones:** Busca términos técnicos. La IA te mostrará la diferencia entre cómo un Junior lo explica y cómo un VP lo articula en una junta. Todo en inglés.")
         search_term = st.text_input("🔍 Buscar término (ej. Kanban, EBITDA):", key="search_term_input")
         if st.button("Buscar en la Base de Datos C-Level", type="primary"):
             if search_term:
@@ -607,6 +636,7 @@ elif st.session_state.screen == 'dashboard':
         st.markdown("<br>### 📚 Términos Sugeridos", unsafe_allow_html=True)
         category = st.selectbox("Explorar:", list(ENCYCLOPEDIA.keys()))
         
+        # ASISTENTE 3
         sug_key_2 = f"enc_{category}"
         with st.expander("🤖 Asistente Estratégico (Conectores y Palabras Nuevas)"):
             if st.button("💡 Sugerir bloques lógicos para esta especialidad", key="btn_a_2"):
@@ -620,8 +650,7 @@ elif st.session_state.screen == 'dashboard':
                 st.markdown(f"**Definición:** {data['desc']}")
                 st.markdown(f"<div style='background-color:#1e293b; padding:10px; border-left:4px solid #f59e0b;'><b>Cómo lo hila un VP:</b><br> <i>\"{data['uso']}\"</i></div>", unsafe_allow_html=True)
 
-
-    # 4. AI COMBAT LAB (CON MICRÓFONO Y ASISTENTE)
+    # 4. AI COMBAT LAB (CON ASISTENTE)
     with tabs[3]:
         mission = NINETY_DAY_PLAN[st.session_state.selected_roadmap_day]
         st.subheader(f"Combat Lab: {mission['title']}")
@@ -636,12 +665,13 @@ elif st.session_state.screen == 'dashboard':
         if st.session_state.get('daily_q'):
             st.warning(st.session_state.daily_q)
             
+            # ASISTENTE 4
             with st.expander("🤖 Asistente Estratégico (Sugerir vocabulario)"):
                 if st.button("💡 Dame Conectores y Power Verbs para esta crisis", key="btn_a_combat"):
                     with st.spinner("Analizando..."):
                         st.session_state.assistant_suggestions['combat'] = generate_vocabulary_suggestions(st.session_state.daily_q, st.session_state.user_area, st.session_state.user_position)
                 if st.session_state.assistant_suggestions.get('combat'):
-                    st.markdown(f"<div class='eval-box'>{st.session_state.assistant_suggestions['combat']}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions['combat']}</div>", unsafe_allow_html=True)
             
             ans = st.text_area("Tu Respuesta Ejecutiva (Únelo con conectores y puedes usar el micrófono):")
             st_speech_to_text(key="combat_voice_lab")
@@ -652,13 +682,14 @@ elif st.session_state.screen == 'dashboard':
                     st.markdown(f"<div class='level-box'>{res}</div>", unsafe_allow_html=True)
                     st.session_state.xp += 100; save_user_progress()
 
-    # 5. POWER VERBS CON ASISTENTE
+    # 5. POWER VERBS (CON ASISTENTE)
     with tabs[4]:
         st.subheader("Combate de Reflejos: Power Verbs")
         st.info("💡 **Instrucciones:** Sustituye la frase del Junior por el verbo avanzado oficial. Haz 3 o 4 por circuito diario.")
         drill = st.session_state.current_drill
         st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
         
+        # ASISTENTE 5
         sug_key_4 = f"pv_{drill[0]}"
         with st.expander("🤖 Asistente Estratégico (Pista Natural)"):
             if st.button("💡 Dame una pista (Conectores o Sinónimos)", key="btn_a_4"):
@@ -673,15 +704,16 @@ elif st.session_state.screen == 'dashboard':
                 st.success(f"¡Excelente! La frase completa es: '{drill[1]}'"); time.sleep(1.5); st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS); st.rerun()
             else: st.error(f"Sigue siendo básico. Usa palabras de: '{drill[1]}'")
 
-    # 6. CONECTORES LÓGICOS CON ASISTENTE
+    # 6. CONECTORES LÓGICOS (CON ASISTENTE)
     with tabs[5]:
         st.subheader("🔗 Simulador de Conectores Lógicos")
         st.info("💡 **Instrucciones:** Une las dos oraciones utilizando un conector lógico avanzado (Consequently, Therefore). Haz 3 o 4 por circuito.")
         c_drill = st.session_state.current_connector_drill
         st.markdown(f"<div class='executive-card' style='border-color:#34d399;'><span>Tipo: {c_drill['type']}</span><h3 style='color:white;'>\"{c_drill['junior']}\"</h3></div>", unsafe_allow_html=True)
         
+        # ASISTENTE 6
         with st.expander("🤖 Asistente Estratégico (Sugerir Conectores)"):
-            if st.button("💡 Dime qué conectores de " + c_drill['type'] + " puedo usar"):
+            if st.button("💡 Dime qué conectores de " + c_drill['type'] + " puedo usar", key="btn_a_5"):
                 st.info(f"Opciones ejecutivas válidas: **{', '.join(c_drill['target'])}**")
 
         conn_ans = st.text_area("Reescribe uniendo fluidamente:")
@@ -690,12 +722,13 @@ elif st.session_state.screen == 'dashboard':
                 st.success("¡Perfecto! Fluidez nivel VP."); time.sleep(1.5); st.session_state.current_connector_drill = random.choice(CONNECTORS_DRILLS); st.rerun()
             else: st.error(f"Te faltó el conector correcto: {c_drill['target'][0]} o {c_drill['target'][1]}.")
 
-    # 7. THE FORGE CON ASISTENTE
+    # 7. THE FORGE (CON ASISTENTE)
     with tabs[6]:
         st.subheader("La Fragua: Forja de Logros")
         st.info("💡 **Instrucciones:** Ingresa un logro básico. La IA lo transformará en una declaración orientada a EBITDA.")
         draft = st.text_area("Ingresa un logro básico (ej: Reduje el tiempo de entrega 10%):")
         
+        # ASISTENTE 7
         sug_key_6 = "forge_current"
         with st.expander("🤖 Asistente Estratégico (Conectar ideas)"):
             if st.button("💡 Sugerir conectores lógicos y métricas", key="btn_a_6"):
