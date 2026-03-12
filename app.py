@@ -80,7 +80,7 @@ def load_user_progress(name):
     except: pass
     return False
 
-# --- PSICOLOGÍA DE COLOR Y DISEÑO (CSS) ---
+# --- PSICOLOGÍA DE COLOR Y DISEÑO (CSS + MODO IMPRESIÓN PDF) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0f172a; color: #f8fafc; }
@@ -106,6 +106,23 @@ st.markdown("""
     .diff-facil { background-color: #064e3b; color: #34d399; }
     .diff-media { background-color: #78350f; color: #fbbf24; }
     .diff-dificil { background-color: #7f1d1d; color: #f87171; }
+    
+    /* --- CONFIGURACIÓN PARA EXPORTAR A PDF --- */
+    @media print {
+        header, [data-testid="stSidebar"], .stButton { display: none !important; }
+        .stApp { background-color: white !important; color: black !important; }
+        .eval-box { 
+            background-color: white !important; 
+            color: black !important; 
+            border: 1px solid #cbd5e1 !important; 
+            border-left: 6px solid #3b82f6 !important; 
+            page-break-inside: avoid; 
+            box-shadow: none !important;
+        }
+        h1, h2, h3, h4, p, li, span, b, i { color: black !important; }
+        iframe { display: none !important; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif !important; }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -218,8 +235,6 @@ for area in ["Ingeniería de Producto", "Data Science & SQL", "Logística", "Pro
 def generate_30_day_plan():
     plan = {}
     phases = ["Fundamentos (Día 1-5)", "Dominio Técnico (Día 6-15)", "Gestión de Crisis (Día 16-22)", "Liderazgo (Día 23-28)", "Boardroom (Día 29-30)"]
-    
-    # Textos ricos para poblar el calendario
     templates = [
         ("El Pitch de Impacto", "Crear una presentación personal de 3 líneas enfocada en EBITDA.", "Audio grabado de tu pitch sin dudar.", "No uses 'help', usa 'Spearhead' o 'Orchestrate'.", "1. Escribe el pitch. 2. Identifica el ahorro. 3. Graba 10 veces."),
         ("Contención 8D", "Redactar un correo de respuesta a un problema de calidad.", "Email de 5 líneas con acciones de contención.", "Usa la estructura: Issue -> Containment -> RCA Plan.", "1. Imagina un defecto. 2. Usa 'Deployed containment'. 3. Revisa gramática."),
@@ -229,23 +244,15 @@ def generate_30_day_plan():
         ("Data Storytelling", "Explicar cómo sacaste datos de un SQL o Dashboard.", "Explicación de 1 minuto frente al espejo.", "Usa 'Leveraged data' en lugar de 'looked at Excel'.", "1. Define la base de datos. 2. Explica la tendencia. 3. Da la conclusión de negocio."),
         ("Defensa de CAPEX", "Justificar la compra de una máquina de $100k USD.", "One-pager (1 hoja) con ROI y Payback.", "Enfócate en la mitigación de riesgos y ahorros duros.", "1. Calcula el ROI. 2. Escribe el riesgo de no comprarla. 3. Haz el cierre fuerte.")
     ]
-    
     for day in range(1, 31):
         phase_idx = min((day - 1) // 6, 4) 
         temp = templates[day % len(templates)]
-        
-        # Días especiales (Hitos)
         if day == 1: temp = ("El Pitch de Impacto (EBITDA)", "Redactar tu valor financiero.", "Audio grabado del pitch.", "Prohibido usar 'help'. Usa 'Orchestrate'.", "1. Escribe 3 líneas. 2. Traduce métricas. 3. Graba.")
         if day == 15: temp = ("Auditoría Global (Mid-Term)", "Simular respuesta a un auditor VDA 6.3/IATF.", "Reporte 8D resumido en inglés.", "Menciona 'Risk-based thinking'.", "1. Identifica hallazgo. 2. Define contención. 3. Causa Raíz.")
         if day == 30: temp = ("La Prueba de Fuego (CEO)", "Responder cómo reducirás 20% el OPEX sin afectar calidad.", "Video de 3 minutos sin cortes.", "Usa estructura de 3 puntos (First, Second, Ultimately).", "1. Vístete profesional. 2. Activa la cámara. 3. Vende tu estrategia.")
 
         plan[day] = {
-            "phase": phases[phase_idx],
-            "title": temp[0],
-            "actividad": temp[1],
-            "entregable": temp[2],
-            "tips": temp[3],
-            "plan": temp[4]
+            "phase": phases[phase_idx], "title": temp[0], "actividad": temp[1], "entregable": temp[2], "tips": temp[3], "plan": temp[4]
         }
     return plan
 
@@ -331,7 +338,7 @@ with st.sidebar:
     else: st.warning("⚠️ Sin conexión a la base de datos (Modo Local)")
     st.divider()
     
-    # --- NUEVO MENÚ DE NAVEGACIÓN ---
+    # --- MENÚ DE NAVEGACIÓN ---
     st.markdown("### 🧭 Navegación Rápida")
     if st.button("🏠 Home (Inicio)", use_container_width=True):
         st.session_state.screen = 'home'
@@ -517,10 +524,20 @@ elif st.session_state.screen == 'finalizing':
 
 elif st.session_state.screen == 'results':
     st.markdown("<h1 style='text-align: center; color: #f59e0b;'>Auditoría Finalizada</h1>", unsafe_allow_html=True)
+    
+    st.markdown(f"<p style='text-align:center; font-size:1.2em;'>Candidato: <b>{st.session_state.user_name}</b> | Especialidad: <b>{st.session_state.user_area}</b></p>", unsafe_allow_html=True)
     st.markdown(st.session_state.placement_eval_detailed, unsafe_allow_html=True)
+    
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
+        # --- BOTÓN DE IMPRESIÓN (PDF CERO MEMORIA) ---
+        components.html("""
+            <button onclick="window.parent.print()" style="width:100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1em; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                🖨️ Guardar Reporte como PDF
+            </button>
+        """, height=65)
+
         if st.button("Desbloquear Mi War Room ⚔️"):
             st.session_state.screen = 'dashboard'
             st.rerun()
@@ -535,18 +552,15 @@ elif st.session_state.screen == 'dashboard':
         st.subheader("Tu Calendario Táctico de 30 Días")
         st.write("Selecciona un día en la cuadrícula para ver tu misión específica.")
         
-        # Generador de la cuadrícula de 30 días (6 columnas x 5 filas)
         cols = st.columns(6)
         for i in range(1, 31):
             col_idx = (i - 1) % 6
             with cols[col_idx]:
-                # Resaltar el día seleccionado
                 btn_type = "primary" if st.session_state.selected_roadmap_day == i else "secondary"
                 if st.button(f"Día {i}", key=f"grid_day_{i}", type=btn_type, use_container_width=True):
                     st.session_state.selected_roadmap_day = i
                     st.rerun()
         
-        # Mostrar el detalle del día seleccionado abajo
         selected_data = THIRTY_DAY_PLAN[st.session_state.selected_roadmap_day]
         st.markdown(f"""
             <div class="mission-card">
@@ -570,7 +584,7 @@ elif st.session_state.screen == 'dashboard':
                     st.session_state.assistant_suggestions[sug_key_1] = generate_vocabulary_suggestions(selected_data['actividad'], st.session_state.user_area)
             if st.session_state.assistant_suggestions.get(sug_key_1):
                 st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions[sug_key_1]}</div>", unsafe_allow_html=True)
-        
+
         if st.button("✅ Marcar Día como Completado y Avanzar"):
             st.session_state.xp += 200
             st.session_state.current_day = min(30, st.session_state.selected_roadmap_day + 1)
@@ -583,9 +597,8 @@ elif st.session_state.screen == 'dashboard':
     # 2. ENCICLOPEDIA VP INTERACTIVA
     with tabs[1]:
         st.subheader("Enciclopedia de Jerga Corporativa (Buscador AI)")
-        st.write("Busca cualquier término técnico, concepto o acrónimo. Nuestro Mentor Elite te enseñará cómo usarlo con autoridad directiva.")
+        st.write("Busca cualquier término técnico o acrónimo. El Mentor Elite te enseñará cómo usarlo con autoridad directiva.")
         
-        # --- BUSCADOR INFINITO CON IA ---
         search_term = st.text_input("🔍 Buscar término (ej. Bottleneck, Micromanagement, EBITDA, Kanban):", key="search_term_input")
         if st.button("Buscar en la Base de Datos C-Level", type="primary"):
             if search_term:
@@ -702,4 +715,3 @@ elif st.session_state.screen == 'dashboard':
 
 st.divider()
 st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Algoritmo Adaptativo & Firebase Cloud Enabled | Gemini 3 Flash Preview")
-
