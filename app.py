@@ -83,6 +83,17 @@ def load_user_progress(name):
     except: pass
     return False
 
+# NUEVA FUNCIÓN: ELIMINAR EXPEDIENTE
+def delete_user_progress():
+    if not db or not st.session_state.get("user_name"): return False
+    try:
+        user_id = st.session_state.user_name.lower().replace(" ", "_")
+        doc_ref = db.collection("artifacts").document(app_id).collection("public").document("data").collection("users").document(user_id)
+        doc_ref.delete()
+        return True
+    except:
+        return False
+
 # --- CSS + MODO IMPRESIÓN PDF ---
 st.markdown("""
     <style>
@@ -113,7 +124,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- COMPONENTES MULTIMEDIA (MICRÓFONO Y ALTAVOZ) ---
+# --- COMPONENTES MULTIMEDIA (MICRÓFONO Y NUEVO PANEL DE AUDIO) ---
 def st_speech_to_text(key):
     script = """
     <script>
@@ -130,10 +141,33 @@ def st_speech_to_text(key):
     """
     return components.html(script, height=80)
 
-def st_text_to_speech(text):
-    if text:
-        clean = text.replace('"', '\\"').replace('\n', ' ')
-        components.html(f"<script>const m=new SpeechSynthesisUtterance('{clean}');m.lang='en-US';m.rate=0.95;window.speechSynthesis.speak(m);</script>", height=0)
+# NUEVO REPRODUCTOR DE AUDIO CON CONTROLES (Play, Pausa, Reanudar, Detener)
+def st_audio_player(text, height=50):
+    if not text: return
+    clean = text.replace('"', '\\"').replace('\n', ' ').replace('\r', '')
+    html = f"""
+    <div style="display: flex; gap: 8px; justify-content: flex-start; align-items: center; padding-bottom: 5px;">
+        <button onclick="play()" style="background: #3b82f6; color: white; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">▶️ Escuchar</button>
+        <button onclick="pause()" style="background: #f59e0b; color: white; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">⏸️</button>
+        <button onclick="resume()" style="background: #10b981; color: white; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">⏯️</button>
+        <button onclick="stopAudio()" style="background: #ef4444; color: white; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">⏹️</button>
+    </div>
+    <script>
+    const text = "{clean}";
+    let utterance = null;
+    function play() {{
+        window.speechSynthesis.cancel();
+        utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US'; 
+        utterance.rate = 0.95;
+        window.speechSynthesis.speak(utterance);
+    }}
+    function pause() {{ window.speechSynthesis.pause(); }}
+    function resume() {{ window.speechSynthesis.resume(); }}
+    function stopAudio() {{ window.speechSynthesis.cancel(); }}
+    </script>
+    """
+    components.html(html, height=height)
 
 # --- BÓVEDA DE API ---
 try: API_KEY = st.secrets["GEMINI_API_KEY"]
@@ -191,7 +225,7 @@ DYNAMIC_MCQ = {
 for area in ["Project Manager", "Ingeniería de Producto", "Data Science & SQL", "Logística", "Producción", "Otra"]:
     if area not in DYNAMIC_MCQ: DYNAMIC_MCQ[area] = copy.deepcopy(DYNAMIC_MCQ["Operaciones & Supply Chain"])
 
-# --- ENCICLOPEDIA (RESTAURADA Y BLINDADA) ---
+# --- ENCICLOPEDIA (BLINDADA) ---
 ENCYCLOPEDIA = {
     "Operaciones & Supply Chain": {
         "EBITDA": {"desc": "Beneficio antes de intereses, impuestos, depreciación y amortización.", "uso": "Furthermore, this strategic initiative protected our EBITDA margins by 12%."},
@@ -306,11 +340,14 @@ if 'current_connector_drill' not in st.session_state: st.session_state.current_c
 if 'selected_roadmap_day' not in st.session_state: st.session_state.selected_roadmap_day = 1
 if 'assistant_suggestions' not in st.session_state: st.session_state.assistant_suggestions = {}
 if 'encyclopedia_result' not in st.session_state: st.session_state.encyclopedia_result = None
-if 'daily_q' not in st.session_state: st.session_state.daily_q = None
+
+# Variables divididas para el AI Combat Lab (Inglés / Español)
+if 'daily_q_eng' not in st.session_state: st.session_state.daily_q_eng = None
+if 'daily_q_spa' not in st.session_state: st.session_state.daily_q_spa = None
 
 # --- PANEL LATERAL ---
 with st.sidebar:
-    st.markdown("<h1 style='text-align: center; font-size: 2em;'>🦅 CONTROL</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-size: 2em;'>🎛️ CONTROL</h1>", unsafe_allow_html=True)
     if db: st.success("☁️ Guardado en la Nube: ACTIVADO")
     else: st.warning("⚠️ Sin conexión a la base de datos (Modo Local)")
     st.divider()
@@ -333,9 +370,21 @@ with st.sidebar:
         st.write(f"**Track:** {areas_str_side}")
         st.write(f"**Nivel:** {st.session_state.english_level}")
         st.write(f"**XP:** {st.session_state.xp}")
-    if st.button("🔄 Reset / Cerrar Sesión"):
-        for k in list(st.session_state.keys()): del st.session_state[k]
-        st.rerun()
+        
+        st.divider()
+        with st.expander("⚙️ Opciones de Sistema"):
+            if st.button("🔄 Cerrar Sesión", use_container_width=True):
+                for k in list(st.session_state.keys()): del st.session_state[k]
+                st.rerun()
+            # NUEVO BOTÓN PARA BORRAR BD
+            if st.button("🗑️ Borrar mi Expediente", use_container_width=True):
+                if delete_user_progress():
+                    st.success("Datos eliminados de la nube.")
+                    time.sleep(1.5)
+                    for k in list(st.session_state.keys()): del st.session_state[k]
+                    st.rerun()
+                else:
+                    st.error("Error al eliminar (¿Modo Local?).")
 
 # --- FUNCIONES ADAPTATIVAS ---
 def get_adaptive_question(areas, diff):
@@ -444,9 +493,12 @@ elif st.session_state.screen == 'placement_test':
                 st.session_state.dynamic_scenarios = res.split('---')
 
         current_scenario = st.session_state.dynamic_scenarios[ai_step] if ai_step < len(st.session_state.dynamic_scenarios) else "Explain a major process failure and your leadership containment action."
-        st.markdown(f"<div class='executive-card'><b>Situación Crítica (Usa el Micrófono para responder):</b><br>{current_scenario}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='executive-card'><b>Situación Crítica (Escucha y usa el Micrófono para responder):</b><br>{current_scenario}</div>", unsafe_allow_html=True)
         
-        ans = st.text_area("Tu Respuesta en Inglés (Puedes dictarla haciendo clic en el micrófono de abajo):")
+        # Audio Player para el Escenario de Crisis
+        st_audio_player(current_scenario)
+        
+        ans = st.text_area("Tu Respuesta en Inglés:")
         st_speech_to_text(key=f"voice_placement_{ai_step}")
         
         if st.button("Validar Respuesta"):
@@ -579,10 +631,10 @@ elif st.session_state.screen == 'dashboard':
             st.success("¡Circuito completado con éxito! Fluidez adquirida y guardada en la nube.")
             time.sleep(1.5); st.rerun()
 
-    # 2. SHADOWING (CON ASISTENTE DE ANÁLISIS)
+    # 2. SHADOWING (CON NUEVOS CONTROLES DE AUDIO)
     with tabs[1]:
         st.subheader("🎧 Entrenamiento Auditivo (Shadowing)")
-        st.info("💡 **El Método:** 1. Presiona 'Escuchar'. 2. Escucha la pronunciación nativa. 3. Usa el micrófono para repetir la frase en voz alta.")
+        st.info("💡 **El Método:** 1. Presiona 'Escuchar'. 2. Escucha la pronunciación nativa usando los controles. 3. Usa el micrófono para repetir la frase en voz alta.")
         
         phrases_to_shadow = [
             "Furthermore, we must deploy immediate containment actions.",
@@ -601,15 +653,14 @@ elif st.session_state.screen == 'dashboard':
             st.markdown(f"<div class='executive-card' style='padding:20px; margin-bottom:10px;'><h3 style='color:white; margin:0;'>\"{phrase}\"</h3></div>", unsafe_allow_html=True)
             col1, col2 = st.columns([1, 2])
             with col1:
-                if st.button("🔊 Escuchar Pronunciación", key=f"shadow_play_{idx}"):
-                    st_text_to_speech(phrase)
+                st_audio_player(phrase, height=50)
             with col2:
                 st_speech_to_text(key=f"shadow_mic_{idx}")
 
     # 3. ENCICLOPEDIA VP (CON ASISTENTE)
     with tabs[2]:
         st.subheader("Enciclopedia de Jerga Corporativa")
-        st.info("💡 **Instrucciones:** Busca términos técnicos. La IA te mostrará la diferencia entre cómo un Junior lo explica y cómo un VP lo articula en una junta. Todo en inglés.")
+        st.info("💡 **Instrucciones:** Busca términos técnicos. La IA te mostrará la diferencia entre cómo un Junior lo explica y cómo un VP lo articula en una junta. Todo generado 100% en inglés.")
         search_term = st.text_input("🔍 Buscar término (ej. Kanban, EBITDA):", key="search_term_input")
         if st.button("Buscar en la Base de Datos C-Level", type="primary"):
             if search_term:
@@ -647,25 +698,44 @@ elif st.session_state.screen == 'dashboard':
                 st.markdown(f"**Definición:** {data['desc']}")
                 st.markdown(f"<div style='background-color:#1e293b; padding:10px; border-left:4px solid #f59e0b;'><b>Cómo lo hila un VP:</b><br> <i>\"{data['uso']}\"</i></div>", unsafe_allow_html=True)
 
-    # 4. AI COMBAT LAB (CON ASISTENTE)
+    # 4. AI COMBAT LAB (PREGUNTA EN INGLÉS, CONTEXTO EN ESPAÑOL Y REPRODUCTOR AUDIO)
     with tabs[3]:
         mission = NINETY_DAY_PLAN[st.session_state.selected_roadmap_day]
         st.subheader(f"Combat Lab: {mission['title']}")
-        st.info("💡 **Instrucciones:** Pídele al Asistente sugerencias de conectores ANTES de contestarle al CEO. Utiliza el micrófono para responder oralmente como en una junta real.")
+        st.info("💡 **Instrucciones:** Escucha al CEO con el nuevo panel de audio. Pide sugerencias al Asistente y utiliza el micrófono para responder oralmente como en una junta real.")
         
         if st.button("🎙️ Solicitar Pregunta del CEO"):
             with st.spinner("CEO conectándose..."):
                 areas_str = ", ".join(st.session_state.user_area) if isinstance(st.session_state.user_area, list) else st.session_state.user_area
-                st.session_state.daily_q = call_ai(f"Act as strict CEO. Ask a challenging question about '{mission['actividad']}' to a {st.session_state.user_position} in {areas_str}. Level: {st.session_state.english_level}.", API_KEY)
-                st_text_to_speech(st.session_state.daily_q)
+                # El Prompt ahora obliga a separar la pregunta en inglés del contexto en español
+                prompt = f"""Act as a strict CEO. Ask a challenging question about '{mission['actividad']}' to a {st.session_state.user_position} in {areas_str}. Level: {st.session_state.english_level}.
+                CRITICAL INSTRUCTION: Format your exact response using this structure with '|||' as separator:
+                [Your strict question entirely in ENGLISH]
+                |||
+                [Explanation in SPANISH of what you expect the candidate to answer. Focus on EBITDA, specific metrics, and logical connectors]"""
+                
+                res = call_ai(prompt, API_KEY)
+                if "|||" in res:
+                    eng, spa = res.split("|||", 1)
+                    st.session_state.daily_q_eng = eng.strip()
+                    st.session_state.daily_q_spa = spa.strip()
+                else:
+                    st.session_state.daily_q_eng = res
+                    st.session_state.daily_q_spa = "Responde demostrando autoridad directiva e impacto financiero."
         
-        if st.session_state.get('daily_q'):
-            st.warning(st.session_state.daily_q)
+        if st.session_state.get('daily_q_eng'):
+            # Mostrar pregunta y controles de audio
+            st.warning(st.session_state.daily_q_eng)
+            st_audio_player(st.session_state.daily_q_eng)
+            
+            # Mostrar la sección en español debajo
+            if st.session_state.get('daily_q_spa'):
+                st.info(f"💡 **Lo que el CEO espera de tu respuesta:**\n\n{st.session_state.daily_q_spa}")
             
             with st.expander("🤖 Asistente Estratégico (Sugerir vocabulario)"):
                 if st.button("💡 Dame Conectores y Power Verbs para esta crisis", key="btn_a_combat"):
                     with st.spinner("Analizando..."):
-                        st.session_state.assistant_suggestions['combat'] = generate_vocabulary_suggestions(st.session_state.daily_q, st.session_state.user_area, st.session_state.user_position)
+                        st.session_state.assistant_suggestions['combat'] = generate_vocabulary_suggestions(st.session_state.daily_q_eng, st.session_state.user_area, st.session_state.user_position)
                 if st.session_state.assistant_suggestions.get('combat'):
                     st.markdown(f"<div class='eval-box' style='padding:15px; font-size:0.9em; margin-top:10px;'>{st.session_state.assistant_suggestions['combat']}</div>", unsafe_allow_html=True)
             
@@ -736,4 +806,4 @@ elif st.session_state.screen == 'dashboard':
                 st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
 
 st.divider()
-st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Adquisición Natural C-Level | Edición 2026")
+st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | QMS4.0 | Lean + IA | Adquisición Natural C-Level | Edición 2026")
