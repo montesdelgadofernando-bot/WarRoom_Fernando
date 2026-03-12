@@ -216,18 +216,28 @@ for area in ["Ingeniería de Producto", "Data Science & SQL", "Logística", "Pro
     if area not in DYNAMIC_MCQ:
         DYNAMIC_MCQ[area] = copy.deepcopy(DYNAMIC_MCQ["Operaciones & Supply Chain"])
 
-# --- KNOWLEDGE BASE ---
+# --- KNOWLEDGE BASE (¡RESTAURADA AL 100%!) ---
 THIRTY_DAY_PLAN = [
-    {"day": 1, "phase": "Cimientos", "title": "El Pitch de Impacto (EBITDA)"},
-    {"day": 2, "phase": "Defensa", "title": "Auditorías Globales"},
-    {"day": 3, "phase": "Sistemas", "title": "Cultura Cero Defectos"},
-    {"day": 7, "phase": "Boardroom", "title": "Prueba de Fuego (CEO)"}
+    {"day": 1, "phase": "Cimientos", "title": "El Pitch de Impacto (EBITDA)", "focus": "Cómo presentar tu valor financiero y ahorros duros."},
+    {"day": 2, "phase": "Defensa", "title": "Auditorías Globales", "focus": "Contención, RCA, IATF 16949 y VDA 6.3."},
+    {"day": 3, "phase": "Sistemas", "title": "Cultura Cero Defectos", "focus": "Métricas de Calidad, FMEA y Risk-based thinking."},
+    {"day": 4, "phase": "Tech Ops", "title": "Data Storytelling", "focus": "Explicar SQL, BigQuery y extracción de datos a Directivos."},
+    {"day": 5, "phase": "Escala", "title": "S&OP & Logística", "focus": "Inventory Record Accuracy (IRA) y Supply Chain."},
+    {"day": 6, "phase": "Futuro", "title": "Inteligencia Artificial", "focus": "Prompt Engineering y Modelos Predictivos en piso."},
+    {"day": 7, "phase": "Boardroom", "title": "Prueba de Fuego (CEO)", "focus": "Estructuras ejecutivas bajo presión extrema."}
 ]
-POWER_VERBS_DRILLS = [("I fixed the problem", "I rectified the non-conformance")]
+
+POWER_VERBS_DRILLS = [
+    ("I fixed the problem", "I rectified the non-conformance"),
+    ("I saved money", "I delivered substantial hard savings"),
+    ("I used data", "I leveraged data analytics to drive decision-making"),
+    ("I started a project", "I spearheaded a strategic initiative"),
+    ("I talked to the client", "I orchestrated cross-functional negotiations")
+]
 
 # --- MOTOR DE IA (GEMINI 3 FLASH PREVIEW) ---
 def call_ai(prompt, api_key):
-    if not api_key: return "⚠️ Error: Falta la API Key."
+    if not api_key: return "⚠️ Error: Falta la API Key en la configuración."
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
@@ -253,6 +263,7 @@ if 'dynamic_scenarios' not in st.session_state: st.session_state.dynamic_scenari
 if 'current_diff' not in st.session_state: st.session_state.current_diff = "media"
 if 'used_q_texts' not in st.session_state: st.session_state.used_q_texts = []
 if 'current_q' not in st.session_state: st.session_state.current_q = None
+if 'current_drill' not in st.session_state: st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
 
 # --- PANEL LATERAL ---
 with st.sidebar:
@@ -271,11 +282,9 @@ with st.sidebar:
 
 # --- FUNCIONES ADAPTATIVAS ---
 def get_adaptive_question(area, diff):
-    # Buscar en la dificultad actual
     pool = DYNAMIC_MCQ.get(area, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(diff, [])
     available = [q for q in pool if q['q'] not in st.session_state.used_q_texts]
     
-    # Si se acabaron en esta dificultad, busca en otra
     if not available:
         for fallback in ["media", "facil", "dificil"]:
             pool = DYNAMIC_MCQ.get(area, DYNAMIC_MCQ["Operaciones & Supply Chain"]).get(fallback, [])
@@ -333,14 +342,12 @@ elif st.session_state.screen == 'placement_test':
     st.subheader(f"Etapa {current_step+1} de {total_steps} ({st.session_state.user_area})")
 
     if current_step < total_mcq:
-        # 1. Cargar pregunta adaptativa si no hay una en pantalla
         if st.session_state.current_q is None:
             st.session_state.current_q = get_adaptive_question(st.session_state.user_area, st.session_state.current_diff)
-            st.rerun() # Recargar para mostrarla
+            st.rerun() 
             
         q = st.session_state.current_q
         
-        # Insignia visual de dificultad
         diff_color = f"diff-{q['diff_label']}"
         diff_text = q['diff_label'].upper()
         st.markdown(f"<span class='diff-badge {diff_color}'>NIVEL: {diff_text}</span>", unsafe_allow_html=True)
@@ -350,13 +357,11 @@ elif st.session_state.screen == 'placement_test':
             if st.button(opt, key=f"btn_{current_step}_{i}"):
                 is_correct = (i == q['ans'])
                 if is_correct:
-                    # Puntaje ponderado por dificultad
                     pts = 15 if q['diff_label'] == 'dificil' else (10 if q['diff_label'] == 'media' else 5)
                     st.session_state.placement_score += pts
                 
-                # Ajustar dificultad para la SIGUIENTE pregunta
                 st.session_state.current_diff = adjust_difficulty(is_correct, q['diff_label'])
-                st.session_state.current_q = None # Limpiar para generar la siguiente
+                st.session_state.current_q = None 
                 st.session_state.placement_step += 1
                 st.rerun()
     else:
@@ -427,7 +432,6 @@ elif st.session_state.screen == 'finalizing':
         res = call_ai(prompt, API_KEY)
         st.session_state.placement_eval_detailed = res
         
-        # Extraer nivel
         for level in ["C2", "C1", "B2", "B1", "A2"]:
             if level in res: 
                 st.session_state.english_level = f"{level} - Certified"
@@ -442,7 +446,6 @@ elif st.session_state.screen == 'finalizing':
 elif st.session_state.screen == 'results':
     st.markdown("<h1 style='text-align: center; color: #f59e0b;'>Auditoría Finalizada</h1>", unsafe_allow_html=True)
     
-    # Se renderiza el HTML exacto que pedimos a la IA para que se vea hermoso
     st.markdown(st.session_state.placement_eval_detailed, unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
@@ -452,11 +455,78 @@ elif st.session_state.screen == 'results':
             st.session_state.screen = 'dashboard'
             st.rerun()
 
+# --- WAR ROOM (¡TOTALMENTE RESTAURADO!) ---
 elif st.session_state.screen == 'dashboard':
     st.title(f"🛡️ War Room: {st.session_state.user_name}")
-    tabs = st.tabs(["📅 Roadmap", "🤖 AI Combat Lab", "⚔️ Power Verbs", "🔥 The Forge"])
-    with tabs[0]: st.write("Roadmap en progreso...")
-    with tabs[1]: st.write("Combat lab en progreso...")
+    tabs = st.tabs(["📅 Roadmap 30 Días", "🤖 AI Combat Lab", "⚔️ Power Verbs", "🔥 The Forge", "📖 Enciclopedia"])
+    
+    with tabs[0]:
+        st.subheader("Tu Ruta de Transformación Táctica")
+        for plan in THIRTY_DAY_PLAN:
+            is_active = "day-active" if plan['day'] == st.session_state.current_day else ""
+            st.markdown(f"""
+                <div class="day-card {is_active}">
+                    <span style="color: #3b82f6; font-weight: 900;">DÍA {plan['day']} • {plan['phase']}</span>
+                    <h3 style="margin-top: 5px; color: white;">{plan['title']}</h3>
+                    <p style="color:#94a3b8; margin-bottom:0;"><b>Foco:</b> {plan['focus']}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+    with tabs[1]:
+        mission = next((p for p in THIRTY_DAY_PLAN if p['day'] == st.session_state.current_day), THIRTY_DAY_PLAN[-1])
+        st.subheader(f"Misión Diaria: {mission['title']}")
+        if st.button("🎙️ Generar Escenario con el Mentor"):
+            with st.spinner("Preparando..."):
+                st.session_state.daily_q = call_ai(f"Elite Mentor. Ask a challenging question about {mission['focus']} to a {st.session_state.user_area} expert. Level {st.session_state.english_level}.", API_KEY)
+                st_text_to_speech(st.session_state.daily_q)
+        
+        if 'daily_q' in st.session_state:
+            st.info(st.session_state.daily_q)
+            ans = st.text_area("Respuesta Ejecutiva:")
+            st_speech_to_text(key="combat_voice")
+            if st.button("Auditar con Feedback y Pro Tips"):
+                with st.spinner("Auditando..."):
+                    prompt = f"""Evaluate: {ans}. Provide in SPANISH: 1. SCORE (0-100) 2. FEEDBACK TÉCNICO 3. TIP PRO 4. VERSIÓN BOARDROOM."""
+                    res = call_ai(prompt, API_KEY)
+                    st.markdown(f"<div class='level-box' style='background-color: #1e293b; border-left-color: #f59e0b;'>{res}</div>", unsafe_allow_html=True)
+                    st.session_state.xp += 100
+                    save_user_progress()
+
+    with tabs[2]:
+        st.subheader("Combate de Reflejos: Power Verbs")
+        drill = st.session_state.current_drill
+        st.markdown(f"<div class='executive-card' style='border-color:#f59e0b;'>Un Junior diría: <b>'{drill[0]}'</b></div>", unsafe_allow_html=True)
+        pv_ans = st.text_input("Sustituye por la versión ejecutiva:")
+        
+        if st.button("Validar Impacto 🎯"):
+            if drill[1].lower() in pv_ans.lower():
+                st.success("¡Excelente! Has neutralizado la frase básica.")
+                st.session_state.xp += 50
+                time.sleep(2)
+                st.session_state.current_drill = random.choice(POWER_VERBS_DRILLS)
+                save_user_progress()
+                st.rerun()
+            else:
+                st.error(f"Sigue siendo básico. La frase letal es: '{drill[1]}'")
+
+    with tabs[3]:
+        st.subheader("La Fragua: Forja de Logros")
+        draft = st.text_area("Ingresa un logro básico (ej: Reduje scrap):")
+        if st.button("⚒️ Forjar Logro VP"):
+            with st.spinner("Forjando..."):
+                res = call_ai(f"Transform to STAR executive achievement in English focused on EBITDA with a Pro Tip in Spanish: {draft}", API_KEY)
+                st.markdown(f"<div class='executive-card'>{res}</div>", unsafe_allow_html=True)
+                save_user_progress()
+
+    with tabs[4]:
+        st.subheader("Enciclopedia Técnica")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.write("🏭 **Ops & Supply:** EBITDA, Hard Savings, S&OP.")
+        with c2:
+            st.write("🧬 **Tech & Data:** SQL Query, BigQuery, IRA.")
+        with c3:
+            st.write("⚖️ **Quality:** IATF 16949, Cpk, RCA.")
 
 st.divider()
 st.caption("Protocolo diseñado por Ing. Fernando Montes Delgado | Algoritmo Adaptativo & Firebase Cloud Enabled | Gemini 3 Flash Preview")
