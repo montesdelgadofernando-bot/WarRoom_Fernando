@@ -1,0 +1,14 @@
+{
+  "opportunities": [],
+  "crm": {
+    "contacts": [],
+    "interactions": [],
+    "pipeline": []
+  },
+  "execution": {
+    "gmailDrafts": [],
+    "linkedInPrep": [],
+    "calendarEvents": []
+  },
+  "metricsHistory": []
+}
